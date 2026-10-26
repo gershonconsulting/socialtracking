@@ -24,9 +24,19 @@ STATUS
        but NO DNS record - the CLOUDFLARE_API_TOKEN cannot edit DNS (code 10000).
        Fix: Cloudflare dashboard -> Workers & Pages -> gershon-socialtracking -> Custom domains
        -> Activate (creates the CNAME), or give the token Zone:DNS:Edit.
+       2026-10-26 task #30b: still ❌ - Cloudflare dashboard signed out in both Chromes (host NXDOMAIN).
 [TODO] ❌ LINKEDIN_CLIENT_SECRET not in GitHub secrets yet
        (TRACKING_LINKEDIN_CLIENT_SECRET in social repo) -> sign-in cannot finish.
-[TODO] ❌ LinkedIn app Social Tracking: returns invalid_scope_error -> product 'Sign In with LinkedIn using OpenID Connect' NOT yet added (app 266649415, Products tab).
+       2026-10-26 task #30b: still ❌ - GitHub signed out in both Chromes; the cloud proxy blocks
+       the Actions secrets API. Alternative: set LINKEDIN_CLIENT_SECRET directly on the Pages
+       project (deploy-siblings.yml skips it when the GitHub secret is empty, so no overwrite).
+[TODO] ❌ LinkedIn app Social Tracking (266649415): invalid_scope_error - OpenID Connect not added.
+       2026-10-26 task #30b: BLOCKED by LinkedIn. The app's pending "Community Management API"
+       request must be the ONLY product on the app, so "Sign In with LinkedIn using OpenID
+       Connect" cannot be requested. Fix options: (a) sign in through the Publish app
+       (86ju2np6725xfp, already has openid) after adding
+       https://socialtracking.gershon.ai/api/auth/linkedin/callback to its redirect URLs;
+       (b) create a separate "Social Tracking Sign-In" LinkedIn app with only OpenID.
 [DONE] ✅ DB backup 2026-10-26 15:01 UTC: 9,299 rows / 18 tables (run 40345226157);
        DB backup before split: social repo branch backup/social-db,
        workflow backup-db.yml (encrypted pg_dump -> R2 gershon-backups + artifact)
