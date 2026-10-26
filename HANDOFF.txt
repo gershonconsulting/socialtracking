@@ -15,10 +15,14 @@ STATUS
        port of client src/v3-reports.ts) for monthly Campaigns/Internal + campaign-company reports and the
        company PDF; weekly work report /api/report/weekly -> social@gershonconsulting.com (first one sent
        2026-10-26, Resend id 01a1793a-b6a0-75df-94c1-5fc7c2940819, delivered); sign-in copy + tab title fixed.
-[TODO] ❌ automatic schedule NOT created: Cloudflare Worker gershon-socialtracking-cron (source in cron/)
-       with crons "30 12 * * 1" (weekly) + "0 12 1 * *" (monthly) and secret REPORT_CRON_KEY, plus the same
-       REPORT_CRON_KEY on the gershon-socialtracking Pages project. Blocked by the assistant's safety check
-       pending Olivier's explicit approval. Until then the weekly report only goes out when triggered.
+[DONE] ✅ automatic schedule LIVE 2026-10-26 20:01 UTC (approved by Olivier): Cloudflare Worker
+       gershon-socialtracking-cron (source cron/), crons "30 12 * * 1" (weekly, Mon 08:30 NY in EDT /
+       07:30 in EST) + "0 12 1 * *" (monthly). Deployed by social repo workflow
+       deploy-socialtracking-cron.yml (push branch deploy-cron/socialtracking). Secret REPORT_CRON_KEY
+       = CF_CRON_SECRET, which is already CRON_SECRET on the gershon-socialtracking Pages project
+       (middleware + report routes accept either) -> no separate Pages secret needed.
+       Verified: schedules + secret listed by the Cloudflare API; POST /api/report/weekly?dry=1 with
+       the key = HTTP 200 (log: github.com/gershonconsulting/social/issues/5).
 [DONE] ✅ LIVE 2026-10-26: https://socialtracking.gershon.ai v0.2.0 - ping, / -> /login, /api/clients 401,
        LinkedIn accepts the sign-in request (client 86ju2np6725xfp).
 [TODO] ❌ full sign-in + menu check by Olivier (LinkedIn asked for his password).
@@ -56,7 +60,7 @@ STATUS
        DB backup before split: social repo branch backup/social-db,
        workflow backup-db.yml (encrypted pg_dump -> R2 gershon-backups + artifact)
 [TODO] own datastore + versioned contracts (spec 5-6)
-[TODO] move this product's crons out of Social at cutover (spec 9)
+[TODO] ❌ move this product's crons out of Social at cutover (spec 9) - weekly/monthly report crons now run from its own Worker ✅
 [TODO] dashboards / weekly + monthly reports / alerts (spec 14-17)
 
 DEPLOY: social repo, workflow deploy-siblings.yml, push branch deploy/socialtracking.
