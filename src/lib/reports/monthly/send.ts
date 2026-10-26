@@ -14,11 +14,10 @@ import prisma from "@/lib/db";
 import { categoryModel, companyModel, type CategoryModel, type CompanyModel, type MonthWindow } from "./model";
 import { categorySubject, companySubject } from "./render-html";
 import { loadCategories, loadCompanyExtras, monthWindow, primaryOrgId } from "./data";
-import { APP_VERSION } from "@/lib/extension-version";
 import { competitionHtml, competitionModel, competitionPdf, competitionSubject, type CompetitionModel } from "./competition";
 import { withAuditBcc } from "@/lib/mail-bcc";
 import { categoryReport, companyReport, renderDesign } from "./design";
-import { PRODUCT_CLIENT_TYPES, PRODUCT_NAME } from "@/lib/product";
+import { PRODUCT_CLIENT_TYPES, PRODUCT_NAME, PRODUCT_VERSION } from "@/lib/product";
 
 export const MONTHLY_SENT_KEY = "monthly_report_sent";
 const REPORT_INBOX = "report@gershonconsulting.com";
@@ -30,7 +29,7 @@ const FROM_CLIENT = "Social · Gershon.AI <reports@gershon.ai>";
 
 export function buildLabel(): string {
   const sha = (process.env.NEXT_PUBLIC_APP_VERSION || "").slice(0, 7);
-  return [`${PRODUCT_NAME} v${APP_VERSION}`, sha].filter(Boolean).join(" · ");
+  return [`${PRODUCT_NAME} v${PRODUCT_VERSION}`, sha].filter(Boolean).join(" · ");
 }
 
 type Sent = Record<string, Record<string, string>>;

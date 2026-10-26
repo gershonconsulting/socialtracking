@@ -18,8 +18,7 @@ import { objectivesFor } from "@/lib/campaigns/objectives";
 import { primaryOrgId } from "@/lib/reports/monthly/data";
 import { designHtml, designPdf, bandColor, GOOD, INK, RED, WARN, type DReport } from "@/lib/reports/gershon-design";
 import { withAuditBcc } from "@/lib/mail-bcc";
-import { APP_VERSION } from "@/lib/extension-version";
-import { PRODUCT_NAME } from "@/lib/product";
+import { PRODUCT_NAME, PRODUCT_VERSION } from "@/lib/product";
 
 export const WEEKLY_SENT_KEY = "weekly_report_sent";
 export const WEEKLY_TO = ["social@gershonconsulting.com"];
@@ -175,7 +174,7 @@ export function weeklyReport(d: WeeklyData, build: string): { subject: string; r
 
 export function weeklyBuildLabel(): string {
   const sha = (process.env.NEXT_PUBLIC_APP_VERSION || "").slice(0, 7);
-  return [`${PRODUCT_NAME} v${APP_VERSION}`, sha].filter(Boolean).join(" · ");
+  return [`${PRODUCT_NAME} v${PRODUCT_VERSION}`, sha].filter(Boolean).join(" · ");
 }
 
 export async function renderWeekly(monday?: string | null) {
