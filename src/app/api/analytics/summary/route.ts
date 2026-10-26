@@ -1,0 +1,170 @@
+export const runtime = 'edge';
+import { NextResponse } from "next/server";
+import prisma from "@/lib/db";
+import { ClientStatus, ClientType } from "@prisma/client";
+
+/**
+ * GET /api/analytics/summary?days=30
+ *
+ * Cross-client aggregation for the Analytics page:
+ *   - postsByDay: array of { date, total, byPlatform: {LINKEDIN, TWITTER, ...} }
+ *   - byPlatform: totals across the period
+ *   - byCategory: company count by clientType
+ *   - topPosts: top 10 posts by engagement (likes+comments+shares)
+ *   - totals: posts/likes/comments/shares for the period
+ *
+ * Wraps in try/catch — returns JSON 500 on errors.
+ */
+export async function GET(req: Request) {
+  try {
+    const url = new URL(req.url);
+    const daysRaw = parseInt(url.searchParams.get("days") || "30", 10);
+    const days = Number.isFinite(daysRaw) && daysRaw > 0 && daysRaw <= 365 ? daysRaw : 30;
+    // Optional per-client scope — when set, every aggregate below is for this
+    // client only. Empty / missing = cross-client (portfolio) view.
+    const clientId = url.searchParams.get("clientId") || null;
+    // Optional category/group scope (e.g. CAMPAIGN). Ignored when a specific
+    // clientId is given. Only applied if it's a valid ClientType.
+    const clientTypeRaw = (url.searchParams.get("clientType") || "").toUpperCase();
+    const clientType = (Object.values(ClientType) as string[]).includes(clientTypeRaw)
+      ? (clientTypeRaw as ClientType)
+      : null;
+
+    // v4.59.0 audit: "Last N days" = today and the N-1 days before it (was
+    // N+1 days with today missing from the chart). Dates are UTC day strings so
+    // the filter and the buckets both match publishedDateLocal.
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const since = new Date(`${todayStr}T00:00:00.000Z`);
+    since.setUTCDate(since.getUTCDate() - (days - 1));
+    const sinceStr = since.toISOString().slice(0, 10);
+
+    // Pull posts in window (optionally scoped to one client or one category).
+    // v4.59.0 audit: filter on publishedDateLocal (same field as the day
+    // buckets) and only count ACTIVE companies.
+    const posts = await prisma.socialPost.findMany({
+      where: {
+        publishedDateLocal: { gte: sinceStr, lte: todayStr },
+        ...(clientId ? { clientId } : {}),
+        client: {
+          status: ClientStatus.ACTIVE,
+          ...(!clientId && clientType ? { clientType } : {}),
+        },
+      },
+      select: {
+        id: true,
+        clientId: true,
+        platform: true,
+        postUrl: true,
+        postTextSnippet: true,
+        publishedDateLocal: true,
+        likeCount: true,
+        commentCount: true,
+        shareCount: true,
+        client: { select: { id: true, name: true, clientType: true } },
+      },
+    });
+
+    // Build day-bucket map
+    const dayMap = new Map<string, { date: string; total: number; byPlatform: Record<string, number> }>();
+    for (let i = 0; i < days; i++) {
+      // v4.59.0 audit: buckets run since..today inclusive (UTC day steps).
+      const d = new Date(since);
+      d.setUTCDate(d.getUTCDate() + i);
+      const ds = d.toISOString().slice(0, 10);
+      dayMap.set(ds, { date: ds, total: 0, byPlatform: {} });
+    }
+
+    let totalPosts = 0;
+    let totalLikes = 0;
+    let totalComments = 0;
+    let totalShares = 0;
+
+    const byPlatform: Record<string, { posts: number; likes: number; comments: number; shares: number }> = {};
+
+    for (const p of posts) {
+      totalPosts++;
+      totalLikes += p.likeCount || 0;
+      totalComments += p.commentCount || 0;
+      totalShares += p.shareCount || 0;
+
+      // day bucket
+      const ds = p.publishedDateLocal;
+      const bucket = dayMap.get(ds);
+      if (bucket) {
+        bucket.total++;
+        bucket.byPlatform[p.platform] = (bucket.byPlatform[p.platform] || 0) + 1;
+      }
+
+      // platform totals
+      const pf = byPlatform[p.platform] || { posts: 0, likes: 0, comments: 0, shares: 0 };
+      pf.posts++;
+      pf.likes += p.likeCount || 0;
+      pf.comments += p.commentCount || 0;
+      pf.shares += p.shareCount || 0;
+      byPlatform[p.platform] = pf;
+    }
+
+    const postsByDay = Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+
+    // Top 10 posts by engagement
+    const topPosts = [...posts]
+      .map((p) => ({
+        id: p.id,
+        platform: p.platform,
+        clientName: p.client?.name ?? "?",
+        clientId: p.clientId,
+        postUrl: p.postUrl,
+        textSnippet: p.postTextSnippet,
+        publishedDateLocal: p.publishedDateLocal,
+        likeCount: p.likeCount || 0,
+        commentCount: p.commentCount || 0,
+        shareCount: p.shareCount || 0,
+        totalEngagement: (p.likeCount || 0) + (p.commentCount || 0) + (p.shareCount || 0),
+      }))
+      .sort((a, b) => b.totalEngagement - a.totalEngagement)
+      .slice(0, 10);
+
+    // Active clients — used both for the category breakdown and to populate
+    // the Analytics client selector (id + name, sorted).
+    const clients = await prisma.client.findMany({
+      where: { status: { not: ClientStatus.ARCHIVED } },
+      select: { id: true, name: true, clientType: true },
+      orderBy: { name: "asc" },
+    });
+    const byCategory: Record<string, number> = {};
+    for (const c of clients) {
+      const k = c.clientType || "UNKNOWN";
+      byCategory[k] = (byCategory[k] || 0) + 1;
+    }
+    const clientList = clients.map((c) => ({ id: c.id, name: c.name }));
+    // Name of the scoped client (if any) for the header.
+    const selectedClientName = clientId
+      ? clients.find((c) => c.id === clientId)?.name ?? null
+      : null;
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        days,
+        clientId,
+        selectedClientName,
+        clients: clientList,
+        since: since.toISOString(),
+        totals: {
+          posts: totalPosts,
+          likes: totalLikes,
+          comments: totalComments,
+          shares: totalShares,
+          engagement: totalLikes + totalComments + totalShares,
+        },
+        postsByDay,
+        byPlatform,
+        byCategory,
+        topPosts,
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to compute analytics";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
+}
