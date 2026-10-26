@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
     if (competitorsOf && ID_RE.test(competitorsOf)) {
       ids = Array.from(new Set([...ids, competitorsOf, ...(await competitorIds(orgId, competitorsOf))]));
       const named = await query<{ name: string }>(
-        `SELECT name FROM clients WHERE id = $1 AND "organizationId" = $2`,
+        `SELECT name FROM clients WHERE id = $1 AND "organizationId" = $2 AND "clientType"::text IN ('CAMPAIGN','INTERNAL')`,
         [competitorsOf, orgId],
       );
       label = named[0] ? `${slug(named[0].name)}-and-competitors` : label;
