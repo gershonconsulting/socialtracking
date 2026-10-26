@@ -5,6 +5,9 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { ViewFiltersProvider } from "@/lib/view-filters";
 import { ApiRetry } from "@/components/layout/api-retry";
 import { PRODUCT_NAME, PRODUCT_VERSION } from "@/lib/product";
+import { ExtensionInstallBanner } from "@/components/layout/extension-install-banner";
+import { ExtensionSeenReporter } from "@/components/layout/extension-seen-reporter";
+import { EXTENSION_LATEST } from "@/lib/extension-version";
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "dev";
 const BUILD_DATE = process.env.NEXT_PUBLIC_BUILD_DATE || new Date().toISOString();
@@ -40,6 +43,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <Sidebar />
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-[1400px] mx-auto px-9 pt-7 pb-10">
+            {/* v0.4.0: Tracking's own extension — red when out of date, notice when absent. */}
+            <ExtensionInstallBanner latest={EXTENSION_LATEST} />
+            <ExtensionSeenReporter />
             {children}
             <footer className="mt-12 pt-4 border-t border-gray-200 text-[11px] text-gray-500 font-mono">
               {PRODUCT_NAME} v{PRODUCT_VERSION}

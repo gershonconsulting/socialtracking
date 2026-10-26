@@ -10,7 +10,7 @@
  * reports the result. So a collection can be started from any browser, a
  * phone included, and the work happens behind the scenes.
  *
- * Storage: one OrgSetting row per workspace, key "collect_queue", JSON:
+ * Storage: one OrgSetting row per workspace, key QUEUE_KEY ("tracking_collect_queue"), JSON:
  *   jobs   — newest last, the last MAX_JOBS kept
  *   agents — every extension install that has checked in: version + last time
  *
@@ -19,8 +19,14 @@
  * between, re-read and try again. A job is never handed out twice.
  */
 import rawPrisma from "@/lib/db-raw";
+import { PRODUCT_CLIENT_TYPES } from "@/lib/product";
 
-export const QUEUE_KEY = "collect_queue";
+/**
+ * Social Tracking (v0.4.0) keeps its OWN queue, separate from Social's
+ * "collect_queue": a verification asked for here is only ever picked up by
+ * the Tracking extension (Post Verifier), and Social's collector never takes it.
+ */
+export const QUEUE_KEY = "tracking_collect_queue";
 const MAX_JOBS = 30;
 /** A job not reported back within this time is marked failed (browser closed mid-run). */
 export const RUN_TIMEOUT_MS = 45 * 60 * 1000;
@@ -196,8 +202,12 @@ async function update<T>(db: Db, orgId: string, mutate: (s: QueueState) => [T, b
 export async function requestCollection(orgId: string, clientId: string | null, db: Db = rawPrisma, deep = false): Promise<CollectJob> {
   let clientName: string | null = null;
   if (clientId) {
-    const c = await db.client.findFirst({ where: { id: clientId, organizationId: orgId }, select: { name: true } });
-    if (!c) throw new Error("Company not found in this workspace.");
+    // Tracking verifies CAMPAIGN + INTERNAL companies only (lib/product.ts).
+    const c = await db.client.findFirst({
+      where: { id: clientId, organizationId: orgId, clientType: { in: [...PRODUCT_CLIENT_TYPES] } },
+      select: { name: true },
+    });
+    if (!c) throw new Error("Company not found among this workspace's campaign and internal companies.");
     clientName = c.name;
   }
   return update(db, orgId, (s) => {

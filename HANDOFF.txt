@@ -11,6 +11,45 @@ SPEC: docs/THREE-PLATFORM-SPLIT.md (sections 2, 14-17 for this product).
 SIBLINGS: social.gershon.ai (repo social), Publish (publish.gershon.ai).
 
 STATUS
+[DONE] ✅ v0.4.0 BUILT 2026-10-26 (repo main) — NOT DEPLOYED YET: awaiting Olivier's approval.
+       Deploy = empty commit on the SOCIAL repo, branch deploy/socialtracking (workflow deploy-siblings.yml).
+       Each platform now has its own Dashboard, Summary and Chrome extension:
+       ✅ /dashboard (PRODUCT_HOME) — campaign command center, CAMPAIGN + INTERNAL only: 4 answer cards,
+          Needs attention (behind < 80% / no post in 3+ weekdays / evidence > 48 h), (1) weekdays verified vs
+          due since campaign start (LinkedIn + X separately, 13-week dots, week chart), (2) content stock rest of
+          month + next month (read-only from Publish), (3) post success + followers per company, (4) efficiency
+          month by month, pipeline + evidence freshness. Window selector Last week/Last month/This month/This
+          year/All time. Hand-drawn SVG. Rule in src/lib/tracking/attainment.ts: every weekday is verified /
+          missing / UNKNOWN (no fresh evidence — never a miss, never zero, rate labelled provisional) / pending.
+       ✅ /summary — Tracking's own "Work completion" month table: expected, verified, missing, unknown, pending,
+          attainment, last post seen, evidence per account, links to company + monthly report (?month=).
+       ✅ Sidebar: Dashboard, Summary, Monthly reports, Companies, Extension.
+       ✅ Own extension "Social Tracking by Gershon.AI — Post Verifier" v0.1.0 (toolbar "… — Verify"):
+          source extension-src/ (from Social's collector, NO gx-publish/gx-personal/session-watch), bridge
+          TRACKING_PING/PONG/HELLO/BOUND, storage keys trk_*, tab marker #trk-bg, own minimized window,
+          session cookies checked locally and NEVER uploaded. Icon: red rounded square + white check
+          (scripts/tracking-icon.mjs). Zip public/socialtracking-extension-v0.1.0.zip built by
+          scripts/build-extension.mjs (in "build"; fails if manifest != EXTENSION_LATEST, or if a publishing
+          file / foreign host appears). EXTENSION_LATEST in src/lib/extension-version.ts.
+       ✅ Server: /api/extension/{bind,version,seen,clients,ingest,collect/next,collect/result} +
+          /api/collect/{queue,request}. Same workspace token (lib/extension-auth.ts). clients/ingest are
+          CAMPAIGN + INTERNAL only; ingest upserts the SAME SocialPost rows/dedupe keys as Social. Own keys:
+          OrgSetting tracking_collect_queue + tracking_evidence, Setting tracking_ext_installed (Social's
+          collect_queue / ext_installed untouched). Middleware lets the token routes through (each checks the
+          token itself); bind/seen stay behind the internal session gate. No Prisma schema change.
+       ✅ Red banner on every page when the installed extension < EXTENSION_LATEST, notice when not installed;
+          /extension page: both install routes side by side (download zip / Load unpacked from
+          C:\Users\oatti\Documents\Claude\Projects\Social Gershon Consulting\socialtracking-chrome-extension),
+          Chromes listening, last run, "Verify every company now".
+       ✅ Verified: npm ci, tsc, npm run build; tests (npx tsx --test, Postgres :5433): attainment 10/10,
+          remote-collect 19/19, remote-collect-e2e 14/14; zip unpacked + manifest checked.
+[TODO] ❌ Deploy v0.4.0 (after Olivier's OK): empty commit on social repo branch deploy/socialtracking.
+[TODO] ❌ Put the extension in the Load-unpacked folder on Olivier's computer:
+       copy extension-src/ (incl. icons/) to ...\Social Gershon Consulting\socialtracking-chrome-extension,
+       then chrome://extensions -> Load unpacked -> that folder (one time), open socialtracking.gershon.ai once
+       signed in so it binds itself. Then /extension should list the Chrome as listening.
+[TODO] ❌ After deploy: check /dashboard, /summary, /extension live; queue one verification and confirm the
+       run reports back (last run line) and evidence freshness shows "verifier ✓".
 [DONE] ✅ v0.3.1 LIVE 2026-10-26: reports in the client.gershoncrm.com design (lib/reports/gershon-design.ts,
        port of client src/v3-reports.ts) for monthly Campaigns/Internal + campaign-company reports and the
        company PDF; weekly work report /api/report/weekly -> social@gershonconsulting.com (first one sent
@@ -61,7 +100,8 @@ STATUS
        workflow backup-db.yml (encrypted pg_dump -> R2 gershon-backups + artifact)
 [TODO] own datastore + versioned contracts (spec 5-6)
 [TODO] ❌ move this product's crons out of Social at cutover (spec 9) - weekly/monthly report crons now run from its own Worker ✅
-[TODO] dashboards / weekly + monthly reports / alerts (spec 14-17)
+[TODO] ❌ rest of spec 14-17: deliverables ledger, report review/finalization states, exception owners, alerts
+       (dashboard + summary + own extension done in v0.4.0).
 
 DEPLOY: social repo, workflow deploy-siblings.yml, push branch deploy/socialtracking.
 Pages project: gershon-socialtracking. LinkedIn app redirect:

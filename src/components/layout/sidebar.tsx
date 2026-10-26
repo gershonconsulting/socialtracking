@@ -45,9 +45,11 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Tracking",
     items: [
-      { href: "/summary", icon: ClipboardCheck, label: "Work completion" },
+      { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+      { href: "/summary", icon: ClipboardCheck, label: "Summary" },
       { href: "/reports", icon: FileText, label: "Monthly reports" },
       { href: "/clients", icon: Building2, label: "Companies" },
+      { href: "/extension", icon: Puzzle, label: "Extension" },
     ],
   },
 ];
@@ -103,7 +105,7 @@ export function Sidebar() {
     <aside className="w-[248px] flex-shrink-0 bg-[#111317] text-gray-300 flex flex-col h-screen sticky top-0 border-r border-[#1F2229]">
       {/* Brand */}
       <div className="px-5 pt-5 pb-4 border-b border-[#1F2229]">
-        <Link href="/summary" className="flex items-center gap-2.5">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
           <SocialMark size={32} className="flex-shrink-0" />
           <SocialWordmark dark />
         </Link>

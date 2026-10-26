@@ -1,8 +1,8 @@
 /** Which of the three Gershon platforms this build is. */
 export const PRODUCT_NAME = "Social Tracking";
-export const PRODUCT_HOME = "/summary";
+export const PRODUCT_HOME = "/dashboard";
 export const PRODUCT_TAGLINE = "Was the agreed work done? Evidence for the monthly report";
-export const PRODUCT_VERSION = "0.3.1";
+export const PRODUCT_VERSION = "0.4.0";
 
 /** Sign-in page copy (v0.2.1: was still Social's copy). */
 export const PRODUCT_LOGIN_HEADLINE = "Check the agreed work was done, every month.";

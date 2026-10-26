@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
+import { BRIDGE } from "@/lib/extension-version";
 
 /**
- * ExtensionSeenReporter — invisible. Learns which version of the GershonAI
- * Chrome extension is actually installed and tells the server.
+ * ExtensionSeenReporter — invisible. Learns which version of Social Tracking's
+ * Post Verifier extension is actually installed and tells the server
+ * (settings "tracking_ext_installed", lib/extension/seen.ts).
  *
- * The extension's content script already announces itself on every
- * social.gershon.ai page: it posts GERSHONAI_HELLO on load and answers a
- * GERSHONAI_PING with GERSHONAI_PONG. Both carry
+ * The extension's content script announces itself on every
+ * socialtracking.gershon.ai page: it posts TRACKING_HELLO on load and answers a
+ * TRACKING_PING with TRACKING_PONG (v0.4.0 — namespaced, so Social's
+ * GERSHONAI_* messages are never mistaken for it). Both carry
  * chrome.runtime.getManifest().version. We listen for either (HELLO can fire
  * before React mounts, so we ping too) and forward the version to
  * /api/extension/seen.
@@ -20,7 +23,7 @@ import { useEffect } from "react";
  * Reported at most once per version per day per browser, so normal navigation
  * doesn't hammer the settings row.
  */
-const THROTTLE_KEY = "gershonai:seen-reported";
+const THROTTLE_KEY = "socialtracking:seen-reported";
 
 function alreadyReported(version: string): boolean {
   try {
@@ -66,7 +69,7 @@ export function ExtensionSeenReporter() {
       if (event.origin !== window.location.origin) return;
       const data = event.data as { type?: string; version?: unknown } | null;
       if (!data || typeof data !== "object") return;
-      if (data.type === "GERSHONAI_HELLO" || data.type === "GERSHONAI_PONG") {
+      if (data.type === BRIDGE.HELLO || data.type === BRIDGE.PONG) {
         report(data.version);
       }
     };
@@ -74,7 +77,7 @@ export function ExtensionSeenReporter() {
     window.addEventListener("message", onMessage);
     // HELLO may already have fired before this mounted — ask directly.
     window.postMessage(
-      { type: "GERSHONAI_PING", requestId: `seen-${Date.now()}` },
+      { type: BRIDGE.PING, requestId: `seen-${Date.now()}` },
       window.location.origin,
     );
 

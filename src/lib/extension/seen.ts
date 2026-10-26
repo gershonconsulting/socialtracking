@@ -23,7 +23,8 @@
 
 import prisma from "@/lib/db";
 
-export const EXT_SEEN_KEY = "ext_installed";
+/** Social Tracking v0.4.0: its own extension, its own row (Social keeps "ext_installed"). */
+export const EXT_SEEN_KEY = "tracking_ext_installed";
 
 export interface ExtSeen {
   version: string;

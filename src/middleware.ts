@@ -9,6 +9,8 @@
  *
  * Open without a session:
  *   - sign-in (/login, /api/auth/*)
+ *   - the Post Verifier extension's token routes (EXTENSION_TOKEN_API) — each
+ *     checks the workspace token itself (v0.4.0)
  *   - the report routes (/api/report/weekly, /api/report/monthly) ONLY with a
  *     valid schedule key (Bearer CRON_SECRET / DIGEST_SECRET / REPORT_CRON_KEY)
  *     — the weekly + monthly schedules have no user session (v0.3.0)
@@ -23,6 +25,21 @@ import { neon } from "@neondatabase/serverless";
 /** Pages and API prefixes that do not need a Gershon session. */
 const OPEN_PAGES = ["/login"];
 const OPEN_API = ["/api/auth/", "/api/ping"];
+/**
+ * The Post Verifier Chrome extension (v0.4.0). Its service worker carries no
+ * session cookie — it carries the workspace token instead, and EVERY one of
+ * these routes checks that token itself (lib/extension-auth.ts: no token or an
+ * unknown token = 401, never a fallback workspace). /api/extension/version is
+ * public by design (the popup's update check). /api/extension/bind and
+ * /api/extension/seen are NOT here: they are called from a signed-in page and
+ * stay behind the internal-only session gate below.
+ */
+const EXTENSION_TOKEN_API = [
+  "/api/extension/version",
+  "/api/extension/clients",
+  "/api/extension/ingest",
+  "/api/extension/collect/",
+];
 /** Routes a schedule may call with a Bearer key instead of a session. */
 const SCHEDULED_API = ["/api/report/weekly", "/api/report/monthly"];
 
@@ -83,6 +100,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (startsWithAny(pathname, OPEN_API)) return NextResponse.next();
+  if (startsWithAny(pathname, EXTENSION_TOKEN_API)) return NextResponse.next();
   if (startsWithAny(pathname, SCHEDULED_API) && scheduleKeyOk(req)) return NextResponse.next();
   if (!pathname.startsWith("/api/") && startsWithAny(pathname, OPEN_PAGES)) return NextResponse.next();
   // Static files served from /public.

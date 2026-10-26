@@ -1,9 +1,12 @@
 "use client";
 
 /**
- * Background collection (v4.44.0, extension 0.19.0).
+ * Background verification — Social Tracking v0.4.0, Post Verifier 0.1.0
+ * (ported from Social's background collection, v4.44.0).
  *
- * The dashboard asks; a Chrome running the extension does the work. Requests
+ * The dashboard asks; a Chrome running the Social Tracking extension does the
+ * work. Tracking's own queue ("tracking_collect_queue") — Social's collector
+ * never takes these jobs. Requests
  * go to a queue on the server (/api/collect/request, /api/collect/queue); every listening Chrome
  * checks it once a minute, takes the job and reports back. Works from any
  * browser — this one does not need the extension.
@@ -67,16 +70,16 @@ function versionLt(a: string, b: string): boolean {
 
 /** One line describing where a job is. */
 export function jobLine(j: CollectJob, listening: number): string {
-  const who = j.clientName || "every company";
+  const who = j.clientName || "every campaign and internal company";
   switch (j.status) {
     case "queued":
       return listening
         ? `Waiting for a Chrome to pick up ${who} — within a minute.`
-        : `Queued for ${who}. No Chrome with the extension is listening right now; it starts as soon as one checks in.`;
+        : `Queued for ${who}. No Chrome with the Social Tracking extension is listening right now; it starts as soon as one checks in.`;
     case "running":
-      return `Collecting ${who} in the background… (started ${ago(j.claimedAt)})`;
+      return `Verifying ${who} in the background… (started ${ago(j.claimedAt)})`;
     case "done":
-      return `Done ${ago(j.finishedAt)} — ${j.result?.upserted ?? 0} posts saved from ${j.result?.accounts ?? 0} accounts.`;
+      return `Done ${ago(j.finishedAt)} — ${j.result?.upserted ?? 0} posts seen on ${j.result?.accounts ?? 0} accounts.`;
     case "failed":
       return `Failed ${ago(j.finishedAt)} — ${j.error || "no reason given"}`;
     case "expired":
@@ -125,14 +128,14 @@ export function useJobFollower() {
       setListening(d.listening);
       follow(d.job.id);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not queue the collection");
+      setError(e instanceof Error ? e.message : "Could not queue the verification");
     }
   }, [follow]);
 
   return { job, listening, error, start, active: !!job && (job.status === "queued" || job.status === "running") };
 }
 
-/** The card on /extension: who is listening, collect everything, recent runs. */
+/** The card on /extension: who is listening, last run, verify everything, recent runs. */
 export function BackgroundCollectorCard({ latest }: { latest: string }) {
   const [view, setView] = useState<QueueView | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -152,10 +155,11 @@ export function BackgroundCollectorCard({ latest }: { latest: string }) {
 
   return (
     <section className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-      <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2"><Radio size={16} /> Background collection</h2>
+      <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2"><Radio size={16} /> Background verification</h2>
       <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-        Every Chrome with the extension (v0.19.0 or later) checks in once a minute and runs any collection asked for here —
-        in its own window, without this page or any dashboard tab open there. You can ask from any browser or your phone.
+        Every Chrome with the Social Tracking extension checks in once a minute and runs any verification asked for here —
+        in its own minimized window that never takes over the screen, without this page open there. You can ask from any
+        browser or your phone. It also verifies by itself once a day.
       </p>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -163,12 +167,20 @@ export function BackgroundCollectorCard({ latest }: { latest: string }) {
           onClick={() => f.start(null)}
           disabled={f.active}
           className="inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white text-sm font-semibold px-4 py-2 disabled:opacity-40">
-          {f.active ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />} Collect every company in the background
+          {f.active ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />} Verify every company now
         </button>
         <span className={`text-xs font-semibold ${listening ? "text-green-700" : "text-[#FE1B04]"}`}>
           {view ? (listening ? `${listening} Chrome${listening > 1 ? "s" : ""} listening` : "No Chrome listening right now") : ""}
         </span>
       </div>
+      {view && (() => {
+        const last = view.jobs.find((j) => j.status === "done" || j.status === "failed");
+        return (
+          <p className="mt-2 text-xs text-gray-600">
+            <b>Last verification run:</b> {last ? jobLine(last, listening) : "none yet."}
+          </p>
+        );
+      })()}
       {f.error && <p className="mt-2 text-xs text-[#FE1B04]">{f.error}</p>}
       {f.job && (
         <div className="mt-3 flex items-start gap-2 text-sm text-gray-700">
@@ -179,7 +191,7 @@ export function BackgroundCollectorCard({ latest }: { latest: string }) {
       <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-gray-500">Chromes that have checked in</h3>
       {loadError && <p className="text-xs text-[#FE1B04] mt-1">{loadError}</p>}
       {view && view.agents.length === 0 && (
-        <p className="text-sm text-gray-500 mt-1">None yet. A Chrome appears here within a minute of running extension v0.19.0 or later.</p>
+        <p className="text-sm text-gray-500 mt-1">None yet. A Chrome appears here within a minute of installing the Social Tracking extension and opening socialtracking.gershon.ai once while signed in.</p>
       )}
       {view && view.agents.length > 0 && (
         <ul className="mt-1 divide-y divide-gray-100">
@@ -201,7 +213,7 @@ export function BackgroundCollectorCard({ latest }: { latest: string }) {
 
       {view && view.jobs.length > 0 && (
         <>
-          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-gray-500">Recent background runs</h3>
+          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-gray-500">Recent verification runs</h3>
           <ul className="mt-1 divide-y divide-gray-100">
             {view.jobs.slice(0, 8).map((j) => (
               <li key={j.id} className="flex items-start gap-2 py-2 text-sm text-gray-700">

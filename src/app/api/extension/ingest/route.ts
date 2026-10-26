@@ -1,0 +1,397 @@
+export const runtime = 'edge';
+import { NextRequest, NextResponse } from "next/server";
+import { pageNameMatches, PAGE_MISMATCH } from "@/lib/linkedin-page-check";
+import prisma from "@/lib/db-raw";
+import { Platform } from "@prisma/client";
+import { recordIngestRun } from "@/lib/extension/heartbeat";
+import { recordExtSeen } from "@/lib/extension/seen";
+import { dbForOrg } from "@/lib/scoped-db";
+import { resolveExtensionCaller } from "@/lib/extension-auth";
+import { recordLinkedInResults } from "@/lib/collection-health";
+import { recordEvidence } from "@/lib/extension/evidence";
+
+/**
+ * POST /api/extension/ingest  (Social Tracking v0.4.0 — Post Verifier)
+ *
+ * Ported from Social. Same SocialPost rows, same dedupe key
+ * (clientId, platform, externalPostId) and the same "lih-" fingerprint
+ * reconciliation, so a post seen by both Social's collector and Tracking's
+ * verifier is ONE row. Only CAMPAIGN + INTERNAL companies are accepted: the
+ * ownership check goes through dbForOrg, which applies the product scope
+ * (lib/scoped-db.ts), so any other company answers "client not in this
+ * workspace". Every account reported is also stamped in Tracking's own
+ * evidence log (lib/extension/evidence.ts) — when Tracking last looked.
+ *
+ * WHICH WORKSPACE. The extension's token says whose data this is (see
+ * extension-auth.ts). Every clientId in the batch is checked against that
+ * workspace before a single post is written — one indexed read per client,
+ * not per post: SocialPost rows hang off a Client, so verifying the client is
+ * what establishes the tenant. After that check the writes use the raw client
+ * deliberately, because routing a few hundred upserts through the scoped
+ * client would add a few hundred redundant ownership lookups.
+ *
+ * Receives a batch of posts scraped by the GershonAI Chrome extension from
+ * inside the user's logged-in linkedin.com / x.com tabs. Each result is
+ * upserted into SocialPost keyed on (clientId, platform, externalPostId).
+ *
+ * Body:
+ *   {
+ *     results: [
+ *       {
+ *         clientId: string,
+ *         connectionId: string,
+ *         platform: "LINKEDIN" | "TWITTER",
+ *         posts: [
+ *           {
+ *             externalPostId: string,
+ *             postUrl?: string,
+ *             postTextSnippet?: string,
+ *             hasMedia?: boolean,
+ *             publishedAtUtc?: string (ISO),
+ *             likeCount?: number,
+ *             commentCount?: number,
+ *             shareCount?: number,
+ *             viewCount?: number,
+ *             rawPayload?: any
+ *           }
+ *         ],
+ *         error?: string
+ *       }
+ *     ]
+ *   }
+ *
+ * Response:
+ *   { success: true, data: { totalUpserted, totalAttempts, failed, perClient: [...] } }
+ */
+
+interface IncomingPost {
+  externalPostId?: string;
+  postUrl?: string;
+  postTextSnippet?: string;
+  hasMedia?: boolean;
+  publishedAtUtc?: string;
+  likeCount?: number;
+  commentCount?: number;
+  shareCount?: number;
+  viewCount?: number;
+  rawPayload?: unknown;
+}
+interface IncomingResult {
+  clientId?: string;
+  connectionId?: string;
+  platform?: string;
+  posts?: IncomingPost[];
+  error?: string;
+}
+interface IncomingBody {
+  results?: IncomingResult[];
+  /** Optional: extension build that produced this batch (0.10.8+). */
+  extVersion?: string;
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const caller = await resolveExtensionCaller(req);
+    if (!caller.ok) {
+      return NextResponse.json(
+        { success: false, error: "Unrecognised extension token" },
+        { status: 401 },
+      );
+    }
+    const db = dbForOrg(caller.orgId);
+
+    const body = (await req.json().catch(() => null)) as IncomingBody | null;
+    if (!body?.results || !Array.isArray(body.results)) {
+      return NextResponse.json({ success: false, error: "results[] required" }, { status: 400 });
+    }
+
+    /** Does this client, and this connection on it, belong to the workspace
+     *  the token named? Cached per batch — a batch names each client once per
+     *  platform, and the answer cannot change mid-request. */
+    const ownership = new Map<string, boolean>();
+    const ownsConnection = async (clientId: string, connectionId: string) => {
+      const key = clientId + "/" + connectionId;
+      const hit = ownership.get(key);
+      if (hit !== undefined) return hit;
+      const row = await db.platformConnection.findFirst({
+        where: { id: connectionId, clientId },
+        select: { id: true },
+      });
+      const owned = !!row;
+      ownership.set(key, owned);
+      return owned;
+    };
+
+    const perClient: Array<{
+      clientId: string;
+      platform: string;
+      attempted: number;
+      upserted: number;
+      error?: string;
+    }> = [];
+
+    let totalUpserted = 0;
+    let totalAttempts = 0;
+    let failed = 0;
+    /** What each LinkedIn company returned — feeds the "LinkedIn broke" alarm. */
+    const liHealth: Array<{ connectionId: string; n: number; error?: string | null }> = [];
+    /** Tracking's own evidence log: one entry per account this batch reported on. */
+    const evidence: Array<{ connectionId: string; ok: boolean; n: number; error?: string | null }> = [];
+
+    for (const r of body.results) {
+      const platStr = (r.platform || "").toUpperCase();
+      if (
+        !r.clientId ||
+        !r.connectionId ||
+        (platStr !== "LINKEDIN" && platStr !== "TWITTER")
+      ) {
+        failed++;
+        perClient.push({
+          clientId: r.clientId ?? "?",
+          platform: r.platform ?? "?",
+          attempted: 0,
+          upserted: 0,
+          error: "missing clientId / connectionId / platform",
+        });
+        continue;
+      }
+      const platform = platStr === "LINKEDIN" ? Platform.LINKEDIN : Platform.TWITTER;
+
+      // Belongs to somebody else, or doesn't exist. Same answer either way —
+      // an extension does not get to learn which.
+      if (!(await ownsConnection(r.clientId, r.connectionId))) {
+        failed++;
+        perClient.push({
+          clientId: r.clientId,
+          platform: platStr,
+          attempted: 0,
+          upserted: 0,
+          error: "client not in this workspace",
+        });
+        continue;
+      }
+
+      // A dead link says nothing about whether the LinkedIn reader works, so it
+      // stays out of the "LinkedIn changed its page" alarm.
+      if (platform === Platform.LINKEDIN && !(r.error ?? "").startsWith("PAGE_UNAVAILABLE")) {
+        liHealth.push({
+          connectionId: r.connectionId,
+          n: r.error ? 0 : Array.isArray(r.posts) ? r.posts.length : 0,
+          error: r.error ?? null,
+        });
+      }
+
+      if (r.error) {
+        evidence.push({ connectionId: r.connectionId, ok: false, n: 0, error: r.error });
+        failed++;
+        perClient.push({
+          clientId: r.clientId,
+          platform: platStr,
+          attempted: 0,
+          upserted: 0,
+          error: r.error,
+        });
+        try {
+          await prisma.platformConnection.update({
+            where: { id: r.connectionId },
+            data: { lastSyncError: r.error.slice(0, 500), lastSyncAt: new Date() },
+          });
+        } catch {}
+        continue;
+      }
+
+      const posts = Array.isArray(r.posts) ? r.posts : [];
+      totalAttempts += posts.length;
+
+      // LinkedIn's new page layout no longer exposes post ids, so extension
+      // 0.13.1+ keys those posts by a fingerprint ("lih-…"). A post already
+      // held under its old activity id (same company, same opening text) keeps
+      // that id, so nothing is counted twice.
+      if (platform === Platform.LINKEDIN && posts.some((p) => (p.externalPostId ?? "").startsWith("lih-"))) {
+        try {
+          const existing = await prisma.socialPost.findMany({
+            where: { clientId: r.clientId, platform },
+            select: { externalPostId: true, postTextSnippet: true },
+            orderBy: { publishedAtUtc: "desc" },
+            take: 1500,
+          });
+          const norm = (t: string | null | undefined) => (t ?? "").replace(/\s+/g, " ").trim().slice(0, 60).toLowerCase();
+          const byText = new Map<string, string>();
+          for (const e of existing) {
+            const k = norm(e.postTextSnippet);
+            if (k.length >= 20 && !byText.has(k)) byText.set(k, e.externalPostId);
+          }
+          for (const p of posts) {
+            if (!(p.externalPostId ?? "").startsWith("lih-")) continue;
+            const known = byText.get(norm(p.postTextSnippet));
+            if (known) p.externalPostId = known;
+          }
+        } catch {}
+      }
+      let upserted = 0;
+      const ops = [];
+      for (const p of posts) {
+        if (!p.externalPostId) continue;
+        const publishedAt = p.publishedAtUtc ? new Date(p.publishedAtUtc) : new Date();
+        if (isNaN(publishedAt.getTime())) continue;
+        const dateLocal = publishedAt.toISOString().slice(0, 10);
+        ops.push({
+          where: {
+            clientId_platform_externalPostId: {
+              clientId: r.clientId,
+              platform,
+              externalPostId: p.externalPostId,
+            },
+          },
+          create: {
+            // Stamped by hand: these writes take the raw client (see the note
+            // at the top), so nothing else would put the tenant on the row —
+            // and a post with no organizationId is invisible to the workspace
+            // that just collected it.
+            organizationId: caller.orgId,
+            clientId: r.clientId,
+            platformConnectionId: r.connectionId,
+            platform,
+            externalPostId: p.externalPostId,
+            postUrl: p.postUrl ?? null,
+            postTextSnippet: (p.postTextSnippet ?? "").slice(0, 280),
+            hasMedia: !!p.hasMedia,
+            publishedAtUtc: publishedAt,
+            publishedAtLocal: publishedAt,
+            publishedDateLocal: dateLocal,
+            likeCount: Number(p.likeCount ?? 0),
+            commentCount: Number(p.commentCount ?? 0),
+            shareCount: Number(p.shareCount ?? 0),
+            viewCount: Number(p.viewCount ?? 0),
+            rawPayloadJson: JSON.stringify({
+              source: "tracking-verifier",
+              raw: p.rawPayload ?? null,
+            }),
+          },
+          update: {
+            postUrl: p.postUrl ?? undefined,
+            postTextSnippet: (p.postTextSnippet ?? "").slice(0, 280),
+            publishedAtUtc: publishedAt,
+            publishedAtLocal: publishedAt,
+            publishedDateLocal: dateLocal,
+            // v4.59.0 audit: never overwrite real engagement with a zero. The
+            // page reader often cannot see the counts (LinkedIn layout change,
+            // admin view) and sent 0, which wiped every re-collected post's
+            // likes/comments/reposts — October showed 180 posts and 1 like.
+            // A count is only written when the collector actually saw one.
+            ...metricUpdate(p),
+          },
+        });
+      }
+
+      if (ops.length > 0) {
+        try {
+          await prisma.$transaction(ops.map((o) => prisma.socialPost.upsert(o)));
+          upserted = ops.length;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          perClient.push({
+            clientId: r.clientId,
+            platform: platStr,
+            attempted: posts.length,
+            upserted: 0,
+            error: "db: " + msg.slice(0, 200),
+          });
+          evidence.push({ connectionId: r.connectionId, ok: false, n: 0, error: "db: " + msg.slice(0, 200) });
+          failed++;
+          continue;
+        }
+      }
+
+      // Extension 0.13.2+: each LinkedIn post carries the name printed on the
+      // page it came from. A name that has nothing in common with the company
+      // we track means the link opens somebody else's page — flag it so the
+      // daily report lists it under "LinkedIn links to fix".
+      let pageFlag: string | null = null;
+      if (platform === Platform.LINKEDIN) {
+        const raw = posts.find((p) => p.rawPayload && typeof p.rawPayload === "object")?.rawPayload as
+          | { pageName?: unknown }
+          | undefined;
+        const pageName = typeof raw?.pageName === "string" ? raw.pageName.trim() : "";
+        if (pageName) {
+          try {
+            const c = await db.client.findFirst({ where: { id: r.clientId }, select: { name: true } });
+            // A company tracked through a PERSON's profile (WALLIX → its CEO's
+            // /in/ page) prints the person's name, not the company's: never a
+            // mismatch (v4.35.1).
+            const conn = await prisma.platformConnection.findFirst({
+              where: { id: r.connectionId },
+              select: { externalAccountUrl: true },
+            });
+            const personal = /linkedin\.com\/in\//i.test(conn?.externalAccountUrl || "");
+            if (!personal && c?.name && !pageNameMatches(c.name, pageName)) {
+              pageFlag = `${PAGE_MISMATCH}: the link opens the LinkedIn page of “${pageName.slice(0, 100)}”, not “${c.name.slice(0, 100)}”`;
+            }
+          } catch {}
+        }
+      }
+
+      try {
+        await prisma.platformConnection.update({
+          where: { id: r.connectionId },
+          data: {
+            connectionStatus: "CONNECTED",
+            lastSyncError: pageFlag,
+            lastSyncAt: new Date(),
+          },
+        });
+      } catch {}
+
+      totalUpserted += upserted;
+      evidence.push({ connectionId: r.connectionId, ok: !pageFlag, n: posts.length, error: pageFlag });
+      perClient.push({
+        clientId: r.clientId,
+        platform: platStr,
+        attempted: posts.length,
+        upserted,
+      });
+    }
+
+    // Post-commit bookkeeping. The posts are already written; nothing below
+    // may fail this response (see the v2.9.1 create-company lesson).
+    //
+    // 1. Heartbeat: proves the collector ran today even when it upserted
+    //    nothing, so the daily report can tell "quiet day" from "job dead".
+    // 2. Extension version, when the build sends one — a stronger signal than
+    //    the page bridge, which only fires when a dashboard tab is open.
+    await recordLinkedInResults(caller.orgId, liHealth);
+    try {
+      await recordEvidence(caller.orgId, evidence);
+    } catch {}
+    try {
+      await recordIngestRun({ attempted: totalAttempts, upserted: totalUpserted, failed });
+    } catch {}
+    try {
+      const v = (body.extVersion ?? "").trim();
+      if (/^\d+(\.\d+){0,3}$/.test(v)) await recordExtSeen(v);
+    } catch {}
+
+    return NextResponse.json({
+      success: true,
+      data: { totalUpserted, totalAttempts, failed, perClient },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Server error";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
+}
+
+
+/** v4.59.0 audit: only the engagement counts the collector actually read (> 0). */
+function metricUpdate(p: { likeCount?: number; commentCount?: number; shareCount?: number; viewCount?: number }) {
+  const out: { likeCount?: number; commentCount?: number; shareCount?: number; viewCount?: number } = {};
+  const keep = (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : undefined;
+  };
+  const l = keep(p.likeCount); if (l !== undefined) out.likeCount = l;
+  const c = keep(p.commentCount); if (c !== undefined) out.commentCount = c;
+  const s = keep(p.shareCount); if (s !== undefined) out.shareCount = s;
+  const v = keep(p.viewCount); if (v !== undefined) out.viewCount = v;
+  return out;
+}

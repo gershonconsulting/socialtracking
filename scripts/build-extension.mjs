@@ -1,105 +1,50 @@
 /**
- * Rebuild public/gershonai-extension.zip from the overrides in extension-src/,
- * and write the same build as public/social-extension.zip.
+ * Build Social Tracking's own Chrome extension — "Social Tracking by
+ * Gershon.AI — Post Verifier" — from extension-src/ (v0.4.0).
  *
- * WHY A PATCH AND NOT A SOURCE TREE. The extension ships as a zip committed to
- * the repo, and the icons inside it are PNGs. The tooling that writes to this
- * repository sends file contents as text, so a binary file cannot be replaced
- * through it — which means the zip has to stay. So this reads the committed
- * zip, replaces the entries that extension-src/ provides, adds any that are
- * new, and writes it back. Files nobody overrides pass through byte for byte.
- * The toolbar icons are drawn by scripts/social-icon.mjs (the Social mark).
+ * Runs before `next build` ("build" in package.json), so every deploy ships:
+ *   public/socialtracking-extension-v<version>.zip   (the download, version in the name)
+ *   extension-src/icons/icon{16,48,128}.png          (so extension-src/ is a complete
+ *                                                     "Load unpacked" folder)
  *
- * NAMING. Every Gershon extension is named after its platform: Pulse LinkedIn
- * Collector / pulse-extension.zip, Linalysis — LinkedIn analytics collector /
- * linalysis-extension.zip, Radar — Sales Nav Collector, NexaShare — … /
- * nexashare-extension.zip. This one is "Social — LinkedIn & X Collector" and
- * downloads as social-extension.zip. The old gershonai-extension.zip is still
- * written so existing links keep working.
+ * The build FAILS (exit 1) when:
+ *   - extension-src/manifest.json's version differs from EXTENSION_LATEST in
+ *     src/lib/extension-version.ts — every download link is built from that
+ *     constant, so a mismatch would ship a link to a file that does not exist;
+ *   - a publishing file (gx-publish.js, gx-personal.js) or a non-Tracking host
+ *     slipped into the source tree — this extension verifies, it never publishes.
  *
- * Entries are written STORED (no compression). A zip of a hundred kilobytes of
- * JavaScript does not need deflate, and stored entries keep this script short
- * enough to read in one sitting, which matters more for something that runs on
- * every deploy.
- *
- * It fails soft: if anything goes wrong the committed zip ships unchanged
- * (under both names) rather than taking the deploy down with it.
+ * The icon (Gershon red rounded square, white check mark) is drawn by
+ * scripts/tracking-icon.mjs in plain JavaScript. Zip entries are STORED with a
+ * fixed date, so the same sources always give the same bytes.
  */
-import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
 import { join, relative, sep } from "node:path";
-import { inflateRawSync } from "node:zlib";
-import { socialIconPng } from "./social-icon.mjs";
+import { trackingIconPng } from "./tracking-icon.mjs";
 
-const ZIP_PATH = "public/gershonai-extension.zip";
 const SRC_DIR = "extension-src";
-const PUBLIC_ZIP = "public/social-extension.zip";
+const PUBLIC_DIR = "public";
+const FORBIDDEN = ["gx-publish.js", "gx-personal.js", "gx-session-watch.js"];
+const EXPECTED_NAME = "Social Tracking by Gershon.AI — Post Verifier";
 
-/**
- * The versioned download — social-extension-v<version>.zip — like the other
- * Gershon extensions (radar-extension-v1.15.0.zip). The version comes from
- * extension-src/manifest.json and must equal EXTENSION_LATEST in
- * src/lib/extension-version.ts, because every download link on the site is
- * built from that constant. A mismatch would ship links to a file that does
- * not exist, so it stops the build instead.
- */
-const MANIFEST_VERSION = JSON.parse(readFileSync(join(SRC_DIR, "manifest.json"), "utf8")).version;
-const LATEST_MATCH = readFileSync("src/lib/extension-version.ts", "utf8").match(/EXTENSION_LATEST\s*=\s*"([^"]+)"/);
-const LATEST = LATEST_MATCH ? LATEST_MATCH[1] : null;
-if (!MANIFEST_VERSION || MANIFEST_VERSION !== LATEST) {
-  console.error(
-    `extension: manifest version ${MANIFEST_VERSION} != EXTENSION_LATEST ${LATEST} — bump both together.`,
-  );
+function fail(msg) {
+  console.error("extension: " + msg);
   process.exit(1);
 }
-const VERSIONED_ZIP = `public/social-extension-v${MANIFEST_VERSION}.zip`;
 
-/* ---------- read ---------- */
-
-/** Every entry of a zip, as { name, data }, via the central directory. */
-function readZip(buf) {
-  // End of central directory: signature 0x06054b50, scanned from the back
-  // because the comment field is variable length.
-  let eocd = -1;
-  for (let i = buf.length - 22; i >= 0; i--) {
-    if (buf.readUInt32LE(i) === 0x06054b50) {
-      eocd = i;
-      break;
-    }
-  }
-  if (eocd < 0) throw new Error("not a zip: no end-of-central-directory record");
-
-  const count = buf.readUInt16LE(eocd + 10);
-  let p = buf.readUInt32LE(eocd + 16);
-  const entries = [];
-
-  for (let i = 0; i < count; i++) {
-    if (buf.readUInt32LE(p) !== 0x02014b50) throw new Error("bad central directory entry");
-    const method = buf.readUInt16LE(p + 10);
-    const compressedSize = buf.readUInt32LE(p + 20);
-    const nameLen = buf.readUInt16LE(p + 28);
-    const extraLen = buf.readUInt16LE(p + 30);
-    const commentLen = buf.readUInt16LE(p + 32);
-    const localOffset = buf.readUInt32LE(p + 42);
-    const name = buf.toString("utf8", p + 46, p + 46 + nameLen);
-
-    // The local header repeats the name/extra lengths, and they can differ
-    // from the central directory's, so read the payload offset from there.
-    const lNameLen = buf.readUInt16LE(localOffset + 26);
-    const lExtraLen = buf.readUInt16LE(localOffset + 28);
-    const start = localOffset + 30 + lNameLen + lExtraLen;
-    const raw = buf.subarray(start, start + compressedSize);
-
-    entries.push({
-      name,
-      data: method === 0 ? Buffer.from(raw) : inflateRawSync(raw),
-    });
-
-    p += 46 + nameLen + extraLen + commentLen;
-  }
-  return entries;
+const manifest = JSON.parse(readFileSync(join(SRC_DIR, "manifest.json"), "utf8"));
+const latestMatch = readFileSync("src/lib/extension-version.ts", "utf8").match(/EXTENSION_LATEST\s*=\s*"([^"]+)"/);
+const LATEST = latestMatch ? latestMatch[1] : null;
+if (!manifest.version || manifest.version !== LATEST) {
+  fail(`manifest version ${manifest.version} != EXTENSION_LATEST ${LATEST} — bump both together.`);
 }
+if (manifest.name !== EXPECTED_NAME) fail(`manifest name is "${manifest.name}", expected "${EXPECTED_NAME}".`);
+for (const f of FORBIDDEN) if (existsSync(join(SRC_DIR, f))) fail(`${f} must not ship in the Tracking extension (no publishing code).`);
+const hosts = [...(manifest.host_permissions || []), ...(manifest.content_scripts || []).flatMap((c) => c.matches || [])];
+const strange = hosts.filter((h) => !/^https:\/\/((www|fr)\.)?linkedin\.com\/\*$|^https:\/\/(x|twitter)\.com\/\*$|^https:\/\/socialtracking\.gershon\.ai\/\*$/.test(h));
+if (strange.length) fail(`unexpected host(s) in the manifest: ${strange.join(", ")}`);
 
-/* ---------- write ---------- */
+/* ---------- zip (stored) ---------- */
 
 const CRC_TABLE = (() => {
   const t = new Int32Array(256);
@@ -121,7 +66,6 @@ function writeZip(entries) {
   const locals = [];
   const centrals = [];
   let offset = 0;
-
   for (const e of entries) {
     const name = Buffer.from(e.name, "utf8");
     const data = e.data;
@@ -129,11 +73,11 @@ function writeZip(entries) {
 
     const local = Buffer.alloc(30 + name.length);
     local.writeUInt32LE(0x04034b50, 0);
-    local.writeUInt16LE(20, 4); // version needed
-    local.writeUInt16LE(0, 6); // flags
-    local.writeUInt16LE(0, 8); // method: stored
-    local.writeUInt16LE(0, 10); // time
-    local.writeUInt16LE(0x21, 12); // date — 1 Jan 2000, so builds are reproducible
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0x0800, 6); // UTF-8 names
+    local.writeUInt16LE(0, 8); // stored
+    local.writeUInt16LE(0, 10);
+    local.writeUInt16LE(0x21, 12); // 1 Jan 2000 — reproducible
     local.writeUInt32LE(crc, 14);
     local.writeUInt32LE(data.length, 18);
     local.writeUInt32LE(data.length, 22);
@@ -143,9 +87,9 @@ function writeZip(entries) {
 
     const central = Buffer.alloc(46 + name.length);
     central.writeUInt32LE(0x02014b50, 0);
-    central.writeUInt16LE(20, 4); // version made by
-    central.writeUInt16LE(20, 6); // version needed
-    central.writeUInt16LE(0, 8);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(0x0800, 8);
     central.writeUInt16LE(0, 10);
     central.writeUInt16LE(0, 12);
     central.writeUInt16LE(0x21, 14);
@@ -165,25 +109,18 @@ function writeZip(entries) {
     centrals.push(central);
     offset += local.length + data.length;
   }
-
   const centralBuf = Buffer.concat(centrals);
   const eocd = Buffer.alloc(22);
   eocd.writeUInt32LE(0x06054b50, 0);
-  eocd.writeUInt16LE(0, 4);
-  eocd.writeUInt16LE(0, 6);
   eocd.writeUInt16LE(entries.length, 8);
   eocd.writeUInt16LE(entries.length, 10);
   eocd.writeUInt32LE(centralBuf.length, 12);
   eocd.writeUInt32LE(offset, 16);
-  eocd.writeUInt16LE(0, 20);
-
   return Buffer.concat([...locals, centralBuf, eocd]);
 }
 
-/* ---------- patch ---------- */
-
 function walk(dir, out = []) {
-  for (const name of readdirSync(dir)) {
+  for (const name of readdirSync(dir).sort()) {
     const full = join(dir, name);
     if (statSync(full).isDirectory()) walk(full, out);
     else out.push(full);
@@ -191,49 +128,23 @@ function walk(dir, out = []) {
   return out;
 }
 
-try {
-  const original = readZip(readFileSync(ZIP_PATH));
-  const byName = new Map(original.map((e) => [e.name, e]));
+/* ---------- build ---------- */
 
-  let replaced = 0;
-  let added = 0;
-  for (const file of walk(SRC_DIR)) {
-    const name = relative(SRC_DIR, file).split(sep).join("/");
-    const data = readFileSync(file);
-    if (byName.has(name)) replaced++;
-    else added++;
-    byName.set(name, { name, data });
-  }
-  // Toolbar icons: the Social mark, drawn by scripts/social-icon.mjs.
-  for (const size of [16, 48, 128]) {
-    const name = `icons/icon${size}.png`;
-    if (byName.has(name)) replaced++;
-    else added++;
-    byName.set(name, { name, data: socialIconPng(size) });
-  }
+// Icons, written into the source folder so it loads unpacked as-is.
+mkdirSync(join(SRC_DIR, "icons"), { recursive: true });
+for (const size of [16, 48, 128]) writeFileSync(join(SRC_DIR, "icons", `icon${size}.png`), trackingIconPng(size));
 
-  // Keep the original ordering, then anything new, so diffs stay legible.
-  const ordered = [
-    ...original.map((e) => byName.get(e.name)),
-    ...[...byName.values()].filter((e) => !original.some((o) => o.name === e.name)),
-  ];
+const entries = walk(SRC_DIR)
+  .map((file) => ({ name: relative(SRC_DIR, file).split(sep).join("/"), data: readFileSync(file) }))
+  .filter((e) => !e.name.startsWith(".") && !e.name.endsWith(".md"));
+// manifest.json first, then the rest in name order.
+entries.sort((a, b) => (a.name === "manifest.json" ? -1 : b.name === "manifest.json" ? 1 : a.name.localeCompare(b.name)));
 
-  const built = writeZip(ordered);
-  writeFileSync(ZIP_PATH, built);
-  writeFileSync(PUBLIC_ZIP, built);
-  writeFileSync(VERSIONED_ZIP, built);
-  console.log(
-    `extension: ${ordered.length} files (${replaced} replaced, ${added} added) -> ${VERSIONED_ZIP} (+ ${PUBLIC_ZIP}, ${ZIP_PATH})`,
-  );
-} catch (err) {
-  console.warn(
-    "extension: could not patch the zip, shipping the committed one as-is — " +
-      (err && err.message ? err.message : String(err)),
-  );
-  try {
-    writeFileSync(PUBLIC_ZIP, readFileSync(ZIP_PATH));
-    writeFileSync(VERSIONED_ZIP, readFileSync(ZIP_PATH));
-  } catch {
-    // Nothing more to do; the old name still serves.
-  }
+mkdirSync(PUBLIC_DIR, { recursive: true });
+// Older builds of THIS extension are removed so only the current version is served.
+for (const f of readdirSync(PUBLIC_DIR)) {
+  if (/^socialtracking-extension-v[\d.]+\.zip$/.test(f) && f !== `socialtracking-extension-v${LATEST}.zip`) unlinkSync(join(PUBLIC_DIR, f));
 }
+const out = join(PUBLIC_DIR, `socialtracking-extension-v${LATEST}.zip`);
+writeFileSync(out, writeZip(entries));
+console.log(`extension: ${manifest.name} v${LATEST} — ${entries.length} files -> ${out}`);

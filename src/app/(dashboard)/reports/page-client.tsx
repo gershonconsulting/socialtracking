@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Header } from "@/components/layout/header";
 import { FileDown, Loader2, TrendingUp, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { formatPercent } from "@/lib/utils";
@@ -32,9 +32,11 @@ export default function ReportsPage() {
   // v4.59.0 audit: true once the selected company's month list has arrived,
   // so "No data for this company yet" never flashes during the fetch.
   const [monthsLoaded, setMonthsLoaded] = useState(false);
+  const wantedMonth = useRef<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/clients?clientType=CAMPAIGN")
+    // v0.4.0: campaign AND internal companies (the API is already scoped to them).
+    fetch("/api/clients?light=1")
       .then((r) => r.json())
       .then((d) => {
         if (d.success) setClients(d.data);
@@ -44,6 +46,9 @@ export default function ReportsPage() {
     const params = new URLSearchParams(window.location.search);
     const cid = params.get("clientId");
     if (cid) setSelectedClientId(cid);
+    // v0.4.0: /summary links here with ?month=YYYY-MM.
+    const m = params.get("month");
+    if (m && /^\d{4}-\d{2}$/.test(m)) wantedMonth.current = m;
   }, []);
 
   useEffect(() => {
@@ -62,7 +67,10 @@ export default function ReportsPage() {
         if (cancelled) return;
         if (d.success) {
           setAvailableMonths(d.data);
-          if (d.data.length > 0) setSelectedMonth(d.data[0]);
+          const want = wantedMonth.current;
+          if (want && d.data.includes(want)) setSelectedMonth(want);
+          else if (d.data.length > 0) setSelectedMonth(d.data[0]);
+          wantedMonth.current = null;
         } else {
           setError(d.error || "Failed to load months");
         }

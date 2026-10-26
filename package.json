@@ -1,10 +1,10 @@
 {
   "name": "gershon-socialtracking",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/build-extension.mjs && next build",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "prisma generate",

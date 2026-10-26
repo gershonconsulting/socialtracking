@@ -165,7 +165,7 @@ export default function LoginPage() {
           className="mt-6 inline-flex items-center gap-1.5 text-[13px] font-medium text-gray-600 hover:text-gray-900"
         >
           <Download size={14} />
-          Download the Social Chrome extension
+          Download the Social Tracking extension (Post Verifier)
         </a>
       </section>
     </div>

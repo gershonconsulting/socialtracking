@@ -1,9 +1,8 @@
 /**
- * The Social app icon as PNG, drawn in plain JavaScript — no image library and
- * no binary file in the repo (the tooling that writes here can only send text).
- * Same drawing as src/app/icon.svg / components/brand/social-mark.tsx, which
- * reproduce Social's official app icon: red outline, white ring, red rounded
- * square split light/dark on the diagonal, white "share" glyph. 64-unit grid.
+ * The Social Tracking extension icon as PNG, drawn in plain JavaScript — no
+ * image library, no binary source file (same approach as Social's
+ * scripts/social-icon.mjs). Gershon red rounded square with a white check
+ * mark: "verified". 64-unit grid, 4×4 supersampled.
  */
 import { deflateSync } from "node:zlib";
 
@@ -24,25 +23,18 @@ function nearSegment(x, y, ax, ay, bx, by, w) {
 const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 
-const OUTLINE = hex("#C8201A");
-const RING_A = hex("#FFFFFF"), RING_B = hex("#D5D7D8");
-const RED = [hex("#E3382B"), hex("#D02C20"), hex("#BB241A"), hex("#A51D15")];
-const GLYPH = hex("#EDEDED");
+/** Gershon.AI red, lit from the top-left. */
+const RED_A = hex("#E63B2E");
+const RED_B = hex("#B91F14");
+const WHITE = hex("#FFFFFF");
 
-/** Colour of the icon at (x, y) on the 64 grid, or null outside it. */
+/** Colour at (x, y) on the 64 grid, or null outside the icon. */
 function colourAt(x, y) {
-  if (!inRound(x, y, 0.6, 0.6, 62.8, 62.8, 27.9)) return null;
-  if (!inRound(x, y, 2.4, 2.4, 59.2, 59.2, 26.1)) return OUTLINE;
-  if (!inRound(x, y, 6.5, 6.5, 51, 51, 21)) return mix(RING_A, RING_B, (x + y) / 128);
-  const glyph =
-    (x - 25.5) ** 2 + (y - 32) ** 2 <= 25 ||
-    (x - 39) ** 2 + (y - 25) ** 2 <= 27.04 ||
-    (x - 39) ** 2 + (y - 39) ** 2 <= 27.04 ||
-    nearSegment(x, y, 25.5, 32, 39, 25, 3.8) ||
-    nearSegment(x, y, 25.5, 32, 39, 39, 3.8);
-  if (glyph) return GLYPH;
-  const t = (x - 6.5 + (y - 6.5)) / 102;
-  return t < 0.52 ? mix(RED[0], RED[1], t / 0.52) : mix(RED[2], RED[3], (t - 0.52) / 0.48);
+  if (!inRound(x, y, 1, 1, 62, 62, 14)) return null;
+  // The check mark: short stroke down-right, long stroke up-right.
+  const tick = nearSegment(x, y, 17, 33.5, 27.5, 44, 7.2) || nearSegment(x, y, 27.5, 44, 47.5, 21, 7.2);
+  if (tick) return WHITE;
+  return mix(RED_A, RED_B, (x + y) / 128);
 }
 
 const CRC = (() => {
@@ -68,8 +60,8 @@ function chunk(type, data) {
   return Buffer.concat([len, td, crc]);
 }
 
-/** A size×size RGBA PNG of the icon, 4×4 supersampled. */
-export function socialIconPng(size) {
+/** A size×size RGBA PNG of the icon. */
+export function trackingIconPng(size) {
   const S = 4;
   const row = size * 4 + 1;
   const raw = Buffer.alloc(size * row);
