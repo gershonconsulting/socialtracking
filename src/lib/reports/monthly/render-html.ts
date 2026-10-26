@@ -68,7 +68,7 @@ const footer = (left: string, right: string) => `<tr><td style="padding:24px 28p
 const link = (t: { text: string; url: string | null }) => (t.url ? `<a href="${e(t.url)}" style="color:${K.ink};text-decoration:none">${e(t.text)}</a>` : e(t.text));
 
 export function categorySubject(win: MonthWindow, m: CategoryModel): string {
-  return `Social Report — ${m.label} — ${win.name} ${win.y} · ${m.totals.pct != null ? `${m.totals.pct}% of posting objective · ` : ""}${fmt(m.totals.posts)} posts · ${fmt(m.totals.eng)} engagements`;
+  return `GC Social Tracking — ${m.label} — ${win.name} ${win.y} · ${m.totals.pct != null ? `${m.totals.pct}% of posting objective · ` : ""}${fmt(m.totals.posts)} posts · ${fmt(m.totals.eng)} engagements`;
 }
 
 export function categoryHtml(win: MonthWindow, m: CategoryModel, build: string): string {
@@ -106,7 +106,7 @@ ${footer(`Social · Gershon.AI · ${e(m.label)} · The same report is attached a
 }
 
 export function companySubject(win: MonthWindow, m: CompanyModel): string {
-  return `Your ${win.name} on social — ${m.name}${m.pct != null ? ` · ${m.pct}% of your posting objective` : ""} · ${m.tiles.find((t) => t.label === "POSTS PUBLISHED")?.value ?? ""} posts`;
+  return `${m.name} — your ${win.name} ${win.y} results with Gershon${m.pct != null ? ` · ${m.pct}% of your posting objective` : ""}`;
 }
 
 export function companyHtml(win: MonthWindow, m: CompanyModel, build: string, to: string): string {

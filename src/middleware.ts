@@ -9,7 +9,9 @@
  *
  * Open without a session:
  *   - sign-in (/login, /api/auth/*)
- *   - nothing else
+ *   - the report routes (/api/report/weekly, /api/report/monthly) ONLY with a
+ *     valid schedule key (Bearer CRON_SECRET / DIGEST_SECRET / REPORT_CRON_KEY)
+ *     — the weekly + monthly schedules have no user session (v0.3.0)
  *
  * Everything else: signed in + member of the primary workspace, or 401/redirect.
  */
@@ -21,6 +23,14 @@ import { neon } from "@neondatabase/serverless";
 /** Pages and API prefixes that do not need a Gershon session. */
 const OPEN_PAGES = ["/login"];
 const OPEN_API = ["/api/auth/", "/api/ping"];
+/** Routes a schedule may call with a Bearer key instead of a session. */
+const SCHEDULED_API = ["/api/report/weekly", "/api/report/monthly"];
+
+function scheduleKeyOk(req: NextRequest): boolean {
+  const auth = req.headers.get("authorization") || "";
+  if (!auth.startsWith("Bearer ")) return false;
+  return [process.env.CRON_SECRET, process.env.DIGEST_SECRET, process.env.REPORT_CRON_KEY].some((k) => !!k && k.length >= 16 && auth === `Bearer ${k}`);
+}
 
 function startsWithAny(pathname: string, prefixes: string[]): boolean {
   return prefixes.some((p) => (p.endsWith("/") ? pathname.startsWith(p) : pathname === p || pathname.startsWith(p + "/")));
@@ -73,6 +83,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (startsWithAny(pathname, OPEN_API)) return NextResponse.next();
+  if (startsWithAny(pathname, SCHEDULED_API) && scheduleKeyOk(req)) return NextResponse.next();
   if (!pathname.startsWith("/api/") && startsWithAny(pathname, OPEN_PAGES)) return NextResponse.next();
   // Static files served from /public.
   if (/\.(png|svg|ico|jpg|jpeg|webp|txt|xml|json|zip)$/.test(pathname)) return NextResponse.next();

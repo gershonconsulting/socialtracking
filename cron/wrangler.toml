@@ -1,0 +1,10 @@
+# Deployed as Cloudflare Worker "gershon-socialtracking-cron" (account Oattia@gmail.com's Account).
+name = "gershon-socialtracking-cron"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+[triggers]
+crons = ["30 12 * * 1", "0 12 1 * *"]
+
+# Secret (not in git): REPORT_CRON_KEY — same value as the gershon-socialtracking Pages secret.

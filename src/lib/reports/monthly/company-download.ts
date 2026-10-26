@@ -12,7 +12,8 @@
  */
 import prisma from "@/lib/db";
 import { companyModel, type CompanyModel, type MonthWindow } from "./model";
-import { companyPdf } from "./render-pdf";
+import { companyReport } from "./design";
+import { designPdf } from "../gershon-design";
 import { loadCompanyExtras, loadOneCompany, monthWindow, primaryOrgId } from "./data";
 import { buildLabel } from "./send";
 import { APP_VERSION } from "@/lib/extension-version";
@@ -60,7 +61,7 @@ export async function buildCompanyPdf(clientId: string, monthKey?: string | null
   if (!model) model = emptyModel(win, client.id, client.name, extras.recipientName, inProgress);
 
   if (inProgress) win.nextName = `the rest of ${win.name}`; // "Ideas for the rest of October"
-  const pdf = companyPdf(win, model, buildLabel());
+  const pdf = designPdf(companyReport(win, model, buildLabel()));
   const filename = `social-${slug(client.name) || "company"}-${key}${inProgress ? "-to-date" : ""}-v${APP_VERSION}.pdf`;
   return { pdf, filename };
 }

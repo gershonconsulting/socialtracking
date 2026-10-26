@@ -12,24 +12,25 @@
  */
 import prisma from "@/lib/db";
 import { categoryModel, companyModel, type CategoryModel, type CompanyModel, type MonthWindow } from "./model";
-import { categoryPdf, companyPdf } from "./render-pdf";
-import { categoryHtml, categorySubject, companyHtml, companySubject } from "./render-html";
+import { categorySubject, companySubject } from "./render-html";
 import { loadCategories, loadCompanyExtras, monthWindow, primaryOrgId } from "./data";
 import { APP_VERSION } from "@/lib/extension-version";
 import { competitionHtml, competitionModel, competitionPdf, competitionSubject, type CompetitionModel } from "./competition";
 import { withAuditBcc } from "@/lib/mail-bcc";
+import { categoryReport, companyReport, renderDesign } from "./design";
+import { PRODUCT_CLIENT_TYPES, PRODUCT_NAME } from "@/lib/product";
 
 export const MONTHLY_SENT_KEY = "monthly_report_sent";
 const REPORT_INBOX = "report@gershonconsulting.com";
 const SALES_INBOX = "sales@gershonconsulting.com";
 // Sender naming rule: Gershon-internal reports carry the "GC" prefix; the
 // client-facing one keeps the product name. gershon.ai is the only verified domain.
-const FROM_INTERNAL = "GC Social <reports@gershon.ai>";
+const FROM_INTERNAL = `GC ${PRODUCT_NAME} <reports@gershon.ai>`;
 const FROM_CLIENT = "Social · Gershon.AI <reports@gershon.ai>";
 
 export function buildLabel(): string {
   const sha = (process.env.NEXT_PUBLIC_APP_VERSION || "").slice(0, 7);
-  return [`Social v${APP_VERSION}`, sha].filter(Boolean).join(" · ");
+  return [`${PRODUCT_NAME} v${APP_VERSION}`, sha].filter(Boolean).join(" · ");
 }
 
 type Sent = Record<string, Record<string, string>>;
@@ -78,7 +79,8 @@ export interface MonthlyBuild {
 export async function buildMonthly(month?: string | null): Promise<MonthlyBuild> {
   const win = monthWindow(month);
   const orgId = await primaryOrgId();
-  const cats = await loadCategories(win, orgId);
+  // Social Tracking covers CAMPAIGN and INTERNAL companies only (Olivier, 2026-10-26).
+  const cats = (await loadCategories(win, orgId)).filter((c) => (PRODUCT_CLIENT_TYPES as readonly string[]).includes(c.key));
   const companies: MonthlyBuild["companies"] = [];
   for (const cat of cats.filter((c) => c.perCompany)) {
     for (const c of cat.companies) {
@@ -101,11 +103,17 @@ export function renderCategory(b: MonthlyBuild, m: CategoryModel | CompetitionMo
   if (m.kind === "competition") {
     return { subject: competitionSubject(b.win, m), html: competitionHtml(b.win, m, build), pdf: competitionPdf(b.win, m, build), filename: `social-${b.win.key}-competition.pdf` };
   }
-  return { subject: categorySubject(b.win, m), html: categoryHtml(b.win, m, build), pdf: categoryPdf(b.win, m, build), filename: `social-${b.win.key}-${slug(m.label)}.pdf` };
+  // v0.3.0: client.gershoncrm.com design (lib/reports/gershon-design.ts).
+  const subject = categorySubject(b.win, m);
+  const r = renderDesign(categoryReport(b.win, m, build), subject);
+  return { subject, html: r.html, pdf: r.pdf, filename: `social-tracking-${b.win.key}-${slug(m.label)}.pdf` };
 }
 export function renderCompany(b: MonthlyBuild, m: CompanyModel, to: string) {
   const build = buildLabel();
-  return { subject: companySubject(b.win, m), html: companyHtml(b.win, m, build, to), pdf: companyPdf(b.win, m, build), filename: `social-${b.win.key}-${slug(m.name)}.pdf` };
+  void to; // the client design has no "prepared for" line
+  const subject = companySubject(b.win, m);
+  const r = renderDesign(companyReport(b.win, m, build), subject);
+  return { subject, html: r.html, pdf: r.pdf, filename: `Gershon-${slug(m.name)}-${b.win.key}.pdf` };
 }
 
 export interface MonthlyRunResult {

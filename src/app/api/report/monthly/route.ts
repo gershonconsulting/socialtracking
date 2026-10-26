@@ -22,8 +22,9 @@ import { primaryOrgId } from "@/lib/reports/monthly/data";
  */
 
 function secretOk(req: NextRequest) {
-  const secret = process.env.CRON_SECRET || process.env.DIGEST_SECRET;
-  return !!secret && (req.headers.get("authorization") || "") === `Bearer ${secret}`;
+  const auth = req.headers.get("authorization") || "";
+  return [process.env.CRON_SECRET, process.env.DIGEST_SECRET, process.env.REPORT_CRON_KEY]
+    .some((s) => !!s && auth === `Bearer ${s}`);
 }
 async function adminOk() {
   const s = await getSession();
