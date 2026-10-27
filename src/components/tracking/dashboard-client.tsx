@@ -18,6 +18,7 @@
  * Hand-drawn SVG/CSS only — no charting library on this edge-rendered page.
  */
 
+import { ClientFrames } from "@/components/ui/client-frames";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -341,6 +342,21 @@ export function TrackingDashboardClient({ data }: { data: TrackingDashData }) {
       {companies.length === 0 && (
         <div className="gx-card p-6 text-sm text-gray-600">No active campaign or internal company yet — nothing to track.</div>
       )}
+
+      {/* v0.5.0 — one framed card per client: Green ≥ 100% of objective, Orange 50–99%, Red < 50% */}
+      <ClientFrames
+        title="Clients — posting objective"
+        subtitle={`${windowLabel}: verified posting days vs days due. Green = on target · Orange = 50–99% · Red = under 50%`}
+        items={companies.map((co, i) => {
+          const a = coverage.cur[i];
+          return {
+            id: co.id, name: co.name, logoUrl: co.logoUrl, href: `/clients/${co.id}`,
+            ratio: a.rate,
+            tag: co.clientType === "CAMPAIGN" ? "Campaign" : "Internal",
+            detail: a.due ? `${a.verified} of ${a.due} days verified${a.unknown ? ` · ${a.unknown} unknown` : ""}` : "nothing due yet",
+          };
+        })}
+      />
 
       {/* The four answers */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
