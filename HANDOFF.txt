@@ -11,6 +11,9 @@ SPEC: docs/THREE-PLATFORM-SPLIT.md (sections 2, 14-17 for this product).
 SIBLINGS: social.gershon.ai (repo social), Publish (publish.gershon.ai).
 
 STATUS
+[BUILT] v0.5.1 (2026-10-28, nightly) - POST /api/matrix-stats: read-only feed for the weekly Client Platform
+       Matrix (task edge function, column key "socialtracking"). PR on branch nightly/2026-10-28-matrix-stats.
+       ❌ deploy (Ariel) ❌ then SQL block 7 in task repo supabase/sql/2026-10-27_matrix_live_endpoints.sql (Charles).
 [DONE] ✅ v0.4.0 BUILT 2026-10-26 (repo main) — NOT DEPLOYED YET: awaiting Olivier's approval.
        Deploy = empty commit on the SOCIAL repo, branch deploy/socialtracking (workflow deploy-siblings.yml).
        Each platform now has its own Dashboard, Summary and Chrome extension:
