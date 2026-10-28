@@ -40,12 +40,7 @@ type Activity = Record<string, { lastPostDateLocal: string | null; postsThisMont
 const CATEGORIES = [
   { key: "ALL", label: "All" },
   { key: "CAMPAIGN", label: "Campaign" },
-  { key: "CLIENT", label: "Client" },
-  { key: "PROSPECT", label: "Prospect" },
-  { key: "PARTNER", label: "Partner" },
-  { key: "COMPETITION", label: "Competition" },
   { key: "INTERNAL", label: "Internal" },
-  { key: "RECYCLED", label: "Recycled" },
 ];
 
 const VIEWS = [

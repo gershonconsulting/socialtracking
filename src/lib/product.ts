@@ -2,7 +2,7 @@
 export const PRODUCT_NAME = "Social Tracking";
 export const PRODUCT_HOME = "/dashboard";
 export const PRODUCT_TAGLINE = "Was the agreed work done? Evidence for the monthly report";
-export const PRODUCT_VERSION = "0.5.0";
+export const PRODUCT_VERSION = "0.5.1";
 
 /** Sign-in page copy (v0.2.1: was still Social's copy). */
 export const PRODUCT_LOGIN_HEADLINE = "Check the agreed work was done, every month.";

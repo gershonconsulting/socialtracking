@@ -22,14 +22,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 export const CATEGORY_OPTIONS = [
+  // v0.5.1 (Olivier, 2026-10-28): Social Tracking only tracks CAMPAIGN and
+  // INTERNAL companies — Client, Prospect, Partner, Competition and Recycled
+  // are Social's ecosystem, not ours, so they are not offered here.
   { key: "CAMPAIGN", label: "Campaign" },
-  { key: "CLIENT", label: "Client" },
-  { key: "PROSPECT", label: "Prospect" },
-  { key: "PARTNER", label: "Partner" },
-  { key: "COMPETITION", label: "Competition" },
   { key: "INTERNAL", label: "Internal" },
-  { key: "RECYCLED", label: "Recycled" },
 ] as const;
+
+const ALLOWED_CATEGORIES: string[] = CATEGORY_OPTIONS.map((c) => c.key);
+const onlyAllowed = (keys: string[]) => keys.filter((k) => ALLOWED_CATEGORIES.includes(k));
 
 export const NETWORK_OPTIONS = [
   { key: "LINKEDIN", label: "LinkedIn" },
@@ -102,7 +103,7 @@ export function ViewFiltersProvider({ children }: { children: React.ReactNode })
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (raw) {
         const p = JSON.parse(raw);
-        if (Array.isArray(p.categories)) setCategoriesState(p.categories);
+        if (Array.isArray(p.categories)) setCategoriesState(onlyAllowed(p.categories));
         if (Array.isArray(p.networks)) setNetworksState(p.networks);
         if (typeof p.month === "string") setMonthState(p.month);
       }
@@ -172,8 +173,10 @@ export function useViewFilters(): Ctx {
 
 /** Does a company pass the category filter? Empty selection = everything. */
 export function matchesCategory(clientType: string | null | undefined, categories: string[]): boolean {
-  if (categories.length === 0) return true;
-  return categories.includes((clientType ?? "").toUpperCase());
+  const type = (clientType ?? "").toUpperCase();
+  // Empty selection = every category this product tracks (Campaign + Internal).
+  if (categories.length === 0) return ALLOWED_CATEGORIES.includes(type);
+  return categories.includes(type);
 }
 
 /** Does a company pass the network filter? Empty selection = everything. */

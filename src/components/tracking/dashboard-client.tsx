@@ -20,6 +20,7 @@
 
 import { ClientFrames } from "@/components/ui/client-frames";
 import { useMemo, useState } from "react";
+import { matchesCategory, useViewFilters } from "@/lib/view-filters";
 import Link from "next/link";
 import {
   CheckCircle2, XCircle, ArrowUpRight, ArrowDownRight, Minus, AlertTriangle, Clock,
@@ -129,7 +130,37 @@ const sumAtt = (a: Attainment[]) => {
   return { ...s, rate: s.due ? s.verified / s.due : null, provisional: s.unknown > 0 } as Attainment;
 };
 
+/**
+ * v0.5.1 (Olivier, 2026-10-28): the dashboard is about our CURRENT CAMPAIGNS.
+ * Internal companies only appear when the user ticks "Internal" in the
+ * left-menu filter (default selection = Campaign). Rows are re-indexed so
+ * every section below only sees the selected companies.
+ */
 export function TrackingDashboardClient({ data }: { data: TrackingDashData }) {
+  const { categories, ready } = useViewFilters();
+  const view = useMemo(() => {
+    const keep = data.companies
+      .map((co, i) => ({ co, i }))
+      .filter(({ co }) => (ready ? matchesCategory(co.clientType, categories) : co.clientType === "CAMPAIGN"));
+    const remap = new Map(keep.map(({ i }, j) => [i, j]));
+    const re = <T extends unknown[]>(rows: T[]) =>
+      rows.filter((r) => remap.has(r[0] as number)).map((r) => { const c = [...r] as T; c[0] = remap.get(r[0] as number); return c; });
+    return {
+      ...data,
+      companies: keep.map(({ co }) => co),
+      followers: keep.map(({ i }) => data.followers[i]),
+      runway: keep.map(({ i }) => data.runway[i]),
+      days: re(data.days),
+      months: re(data.months),
+      stock: re(data.stock),
+      top: data.top.filter((t) => remap.has(t.c)).map((t) => ({ ...t, c: remap.get(t.c)! })),
+    } as TrackingDashData;
+  }, [data, categories, ready]);
+  const key = view.companies.map((c) => c.id).join(",");
+  return <TrackingDashboardView key={key} data={view} />;
+}
+
+function TrackingDashboardView({ data }: { data: TrackingDashData }) {
   const [w, setW] = useState<W>("tm");
   const { companies, today } = data;
   const mk = monthKey(today);
@@ -321,7 +352,7 @@ export function TrackingDashboardClient({ data }: { data: TrackingDashData }) {
           <div className="text-[13px] font-medium text-red-700 mb-1">Social Tracking · campaign command center · was the agreed work done?</div>
           <h1 className="text-[26px] leading-tight font-semibold tracking-tight text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-600 mt-1 flex flex-wrap items-center gap-x-1.5">
-            <span>{nCampaign} campaign + {companies.length - nCampaign} internal companies · {shortDate(bf)} – {shortDate(bt)}</span>
+            <span>{nCampaign} campaign{companies.length - nCampaign ? ` + ${companies.length - nCampaign} internal` : ""} companies · {shortDate(bf)} – {shortDate(bt)}</span>
             <span>·</span>
             <span className={staleCount ? "text-red-700 font-medium" : ""}>
               evidence: last read {relTime(lastRead)}{staleCount ? ` · ${staleCount} stale` : " · all fresh"}
@@ -340,7 +371,7 @@ export function TrackingDashboardClient({ data }: { data: TrackingDashData }) {
       </div>
 
       {companies.length === 0 && (
-        <div className="gx-card p-6 text-sm text-gray-600">No active campaign or internal company yet — nothing to track.</div>
+        <div className="gx-card p-6 text-sm text-gray-600">No active company in the selected categories — nothing to track.</div>
       )}
 
       {/* v0.5.0 — one framed card per client: Green ≥ 100% of objective, Orange 50–99%, Red < 50% */}

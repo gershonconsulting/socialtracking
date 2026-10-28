@@ -23,7 +23,7 @@ import {
 // v4.59.0 audit: /dashboard (v4.58 Campaign command center) is campaign-only
 // with its own period picker and never read these filters — showing them there
 // suggested they did something.
-const FILTERED_PATHS = ["/summary"];
+const FILTERED_PATHS = ["/summary", "/dashboard"]; // v0.5.1: dashboard = Campaign by default, Internal opt-in
 
 function Check({ on, label, count, onClick }: { on: boolean; label: string; count?: number; onClick: () => void }) {
   return (
@@ -93,6 +93,9 @@ export function FilterPanel() {
   if (!applies) return null;
 
   const months = recentMonths(12);
+  // The dashboard has its own time-window buttons and reads every network,
+  // so only the category choice applies there.
+  const categoryOnly = pathname === "/dashboard" || pathname.startsWith("/dashboard/");
 
   return (
     <div className="pt-4 border-t border-[#1F2229]">
@@ -121,6 +124,7 @@ export function FilterPanel() {
         ))}
       </Group>
 
+      {!categoryOnly && (<>
       <Group
         title="By month"
         hint={month === "ALL" ? "all time" : undefined}
@@ -145,6 +149,7 @@ export function FilterPanel() {
           <Check key={n.key} on={networks.includes(n.key)} label={n.label} onClick={() => toggleNetwork(n.key)} />
         ))}
       </Group>
+      </>)}
     </div>
   );
 }
