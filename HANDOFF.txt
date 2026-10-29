@@ -11,7 +11,7 @@ SPEC: docs/THREE-PLATFORM-SPLIT.md (sections 2, 14-17 for this product).
 SIBLINGS: social.gershon.ai (repo social), Publish (publish.gershon.ai).
 
 STATUS
-[DONE] ✅ v0.6.0 BUILT 2026-10-29 (repo main) — Olivier: "better dashboard, stunning one-pager of what was
+[DONE] ✅ v0.6.0 LIVE 2026-10-29 19:55 UTC (deploy run 40944028122, ping 0.6.0 build 20) — Olivier: "better dashboard, stunning one-pager of what was
        posted / what happened last month, remove Recycled, Competition, Partner, Prospect, Client for now",
        + "option to OFF the Chrome extension on some computer".
        ✅ /onepager?month=YYYY-MM[&internal=1] (default = last month; menu "One-pager"; button in the dashboard
@@ -32,6 +32,7 @@ STATUS
           viewer (localStorage socialtracking_collecting=off) — no install notice there.
        ✅ Verified: tsc, npm run build, remote-collect 26/26, remote-collect-e2e 16/16 (incl. OFF/ON), attainment
           10/10; screenshots of dashboard, one-pager, This-computer card with sample data.
+[TODO] ❌ Signed-in check of /dashboard, /onepager, /extension with real data (LinkedIn asked for the password in the Oattia Chrome).
 [TODO] ❌ Load-unpacked folder on Olivier's computer must get extension-src/ v0.2.0 (gx-update.js reloads it).
 [DONE] ✅ v0.4.0 BUILT 2026-10-26 (repo main) — NOT DEPLOYED YET: awaiting Olivier's approval.
        Deploy = empty commit on the SOCIAL repo, branch deploy/socialtracking (workflow deploy-siblings.yml).
