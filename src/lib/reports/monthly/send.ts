@@ -11,12 +11,12 @@
  * and nobody ever gets the same month twice.
  */
 import prisma from "@/lib/db";
-import { categoryModel, companyModel, type CategoryModel, type CompanyModel, type MonthWindow } from "./model";
+import { categoryModel, companyModel, type CategoryModel, type CompanyModel, type CompanyMonth, type MonthWindow } from "./model";
 import { categorySubject, companySubject } from "./render-html";
 import { loadCategories, loadCompanyExtras, monthWindow, primaryOrgId } from "./data";
 import { competitionHtml, competitionModel, competitionPdf, competitionSubject, type CompetitionModel } from "./competition";
 import { withAuditBcc } from "@/lib/mail-bcc";
-import { categoryReport, companyReport, renderDesign } from "./design";
+import { categoryView, companyView, onePageHtml, onePagePdf } from "./onepage";
 import { PRODUCT_CLIENT_TYPES, PRODUCT_NAME, PRODUCT_VERSION } from "@/lib/product";
 
 export const MONTHLY_SENT_KEY = "monthly_report_sent";
@@ -71,7 +71,9 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(
 export interface MonthlyBuild {
   win: MonthWindow;
   categories: Array<CategoryModel | CompetitionModel>;
-  companies: Array<{ model: CompanyModel; recipients: string[] }>;
+  companies: Array<{ model: CompanyModel; recipients: string[]; month: CompanyMonth }>;
+  /** v0.7.0: each category's companies (for the posting calendar) */
+  monthsByCategory: Record<string, CompanyMonth[]>;
 }
 
 /** Build every model for a month (no sending). */
@@ -86,7 +88,7 @@ export async function buildMonthly(month?: string | null): Promise<MonthlyBuild>
       if (!(c.li + c.x)) continue;
       const extras = await loadCompanyExtras(win, orgId, c);
       const model = companyModel(win, c, extras);
-      if (model) companies.push({ model, recipients: extras.recipients });
+      if (model) companies.push({ model, recipients: extras.recipients, month: c });
     }
     cat.delivered = companies.filter((x) => x.recipients.length && cat.companies.some((c) => c.id === x.model.id)).map((x) => x.model.name);
   }
@@ -94,7 +96,8 @@ export async function buildMonthly(month?: string | null): Promise<MonthlyBuild>
   const categories = cats
     .map((c) => (c.key === "COMPETITION" ? competitionModel(win, c) : categoryModel(win, c)))
     .filter((m): m is CategoryModel | CompetitionModel => !!m);
-  return { win, categories, companies };
+  const monthsByCategory = Object.fromEntries(cats.map((c) => [c.key, c.companies]));
+  return { win, categories, companies, monthsByCategory };
 }
 
 export function renderCategory(b: MonthlyBuild, m: CategoryModel | CompetitionModel) {
@@ -102,17 +105,19 @@ export function renderCategory(b: MonthlyBuild, m: CategoryModel | CompetitionMo
   if (m.kind === "competition") {
     return { subject: competitionSubject(b.win, m), html: competitionHtml(b.win, m, build), pdf: competitionPdf(b.win, m, build), filename: `social-${b.win.key}-competition.pdf` };
   }
-  // v0.3.0: client.gershoncrm.com design (lib/reports/gershon-design.ts).
+  // v0.7.0: the one-pager design (lib/reports/monthly/onepage.ts).
   const subject = categorySubject(b.win, m);
-  const r = renderDesign(categoryReport(b.win, m, build), subject);
-  return { subject, html: r.html, pdf: r.pdf, filename: `social-tracking-${b.win.key}-${slug(m.label)}.pdf` };
+  const v = categoryView(b.win, m, b.monthsByCategory[m.key] || [], build);
+  return { subject, html: onePageHtml(v, subject, "PDF attached."), pdf: onePagePdf(v), filename: `social-tracking-${b.win.key}-${slug(m.label)}.pdf` };
 }
 export function renderCompany(b: MonthlyBuild, m: CompanyModel, to: string) {
   const build = buildLabel();
   void to; // the client design has no "prepared for" line
   const subject = companySubject(b.win, m);
-  const r = renderDesign(companyReport(b.win, m, build), subject);
-  return { subject, html: r.html, pdf: r.pdf, filename: `Gershon-${slug(m.name)}-${b.win.key}.pdf` };
+  void build;
+  const month = b.companies.find((x) => x.model.id === m.id)?.month ?? null;
+  const v = companyView(b.win, m, month);
+  return { subject, html: onePageHtml(v, subject, "The full one-page report is attached as a PDF."), pdf: onePagePdf(v), filename: `Gershon-${slug(m.name)}-${b.win.key}.pdf` };
 }
 
 export interface MonthlyRunResult {

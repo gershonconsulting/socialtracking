@@ -1,380 +1,174 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Header } from "@/components/layout/header";
-import { FileDown, Loader2, TrendingUp, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
-import { formatPercent } from "@/lib/utils";
-import type { ClientMonthlyReport } from "@/types";
+/**
+ * Monthly reports — v0.7.0 redesign (Olivier, 2026-10-29).
+ *
+ * One place for the month's reports, in the one-pager look:
+ *   - the Campaigns report and the Internal report (to report@ / sales@),
+ *   - each campaign company's own one-page report (to its contacts),
+ * each with its live preview (the exact email), its PDF, and who receives it.
+ * Sent automatically in the first days of each month (idempotent per report);
+ * this page only previews — nothing is sent from here.
+ */
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { ExternalLink, FileDown, Loader2, Mail, Newspaper, Users, Building2 } from "lucide-react";
 
-interface Client {
-  id: string;
-  name: string;
-  slug: string;
+type Cat = { key: string; label: string; head: string; lead: string; companies: number; posts: number; eng: number; pct: number | null; to: string[] };
+type Co = { id: string; name: string; head: string; pct: number | null; posts: number; eng: number; to: string[] };
+type Index = { month: string; name: string; categories: Cat[]; companies: Co[] };
+type Sel = { kind: "category"; key: string } | { kind: "company"; id: string };
+
+const pad = (n: number) => String(n).padStart(2, "0");
+function closedMonths(n = 12): Array<{ key: string; label: string }> {
+  const now = new Date();
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(Date.UTC(now.getFullYear(), now.getMonth() - 1 - i, 1));
+    return { key: `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`, label: d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" }) };
+  });
 }
-
-interface MonthlyReportData extends ClientMonthlyReport {}
-
-const BADGE_CONFIG = {
-  "100_PCT": { label: "100% Objective Met", icon: CheckCircle2, color: "text-green-700 bg-green-50 border-green-200" },
-  BELOW_TARGET: { label: "Objective Not Met", icon: XCircle, color: "text-red-700 bg-red-50 border-red-200" },
-  INCOMPLETE_VERIFICATION: { label: "Incomplete Verification", icon: AlertCircle, color: "text-amber-700 bg-amber-50 border-amber-200" },
-};
+const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
+const tone = (p: number | null) => (p === null ? "#6b7280" : p >= 100 ? "#16a34a" : p >= 50 ? "#ea580c" : "#CC3333");
 
 export default function ReportsPage() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [selectedClientId, setSelectedClientId] = useState("");
-  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState("");
-  const [report, setReport] = useState<MonthlyReportData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const months = useMemo(() => closedMonths(), []);
+  const [month, setMonth] = useState(months[0].key);
+  const [idx, setIdx] = useState<Index | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // v4.59.0 audit: true once the selected company's month list has arrived,
-  // so "No data for this company yet" never flashes during the fetch.
-  const [monthsLoaded, setMonthsLoaded] = useState(false);
-  const wantedMonth = useRef<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sel, setSel] = useState<Sel | null>(null);
 
   useEffect(() => {
-    // v0.4.0: campaign AND internal companies (the API is already scoped to them).
-    fetch("/api/clients?light=1")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success) setClients(d.data);
-      });
-
-    // Check URL params
-    const params = new URLSearchParams(window.location.search);
-    const cid = params.get("clientId");
-    if (cid) setSelectedClientId(cid);
-    // v0.4.0: /summary links here with ?month=YYYY-MM.
-    const m = params.get("month");
-    if (m && /^\d{4}-\d{2}$/.test(m)) wantedMonth.current = m;
+    const m = new URLSearchParams(window.location.search).get("month");
+    if (m && /^\d{4}-\d{2}$/.test(m)) setMonth(m);
   }, []);
 
   useEffect(() => {
-    // v4.59.0 audit: on company change, drop the previous company's month and
-    // report so we never fetch the new company with the old month.
-    setSelectedMonth("");
-    setReport(null);
-    setAvailableMonths([]);
-    setError(null);
-    setMonthsLoaded(false);
-    if (!selectedClientId) return;
-    let cancelled = false;
-    fetch(`/api/reports/monthly?clientId=${selectedClientId}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (cancelled) return;
-        if (d.success) {
-          setAvailableMonths(d.data);
-          const want = wantedMonth.current;
-          if (want && d.data.includes(want)) setSelectedMonth(want);
-          else if (d.data.length > 0) setSelectedMonth(d.data[0]);
-          wantedMonth.current = null;
-        } else {
-          setError(d.error || "Failed to load months");
-        }
+    let live = true;
+    setLoading(true); setError(null); setIdx(null); setSel(null);
+    fetch(`/api/report/monthly?format=index&month=${month}`, { cache: "no-store" })
+      .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => {
+        if (!live) return;
+        if (!ok || !j?.success) throw new Error(j?.error || "Could not load the reports");
+        setIdx(j.data);
+        if (j.data.categories[0]) setSel({ kind: "category", key: j.data.categories[0].key });
+        else if (j.data.companies[0]) setSel({ kind: "company", id: j.data.companies[0].id });
       })
-      .catch(() => { if (!cancelled) setError("Failed to load months"); })
-      .finally(() => { if (!cancelled) setMonthsLoaded(true); });
-    return () => { cancelled = true; };
-  }, [selectedClientId]);
+      .catch((e) => { if (live) setError(e instanceof Error ? e.message : "Could not load the reports"); })
+      .finally(() => { if (live) setLoading(false); });
+    return () => { live = false; };
+  }, [month]);
 
-  useEffect(() => {
-    if (!selectedClientId || !selectedMonth) return;
-    // v4.59.0 audit: ignore a response that arrives after the company/month changed.
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setReport(null);
-    fetch(`/api/reports/monthly?clientId=${selectedClientId}&month=${selectedMonth}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (cancelled) return;
-        if (d.success) setReport(d.data);
-        else setError(d.error);
-      })
-      .catch(() => { if (!cancelled) setError("Failed to load report"); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [selectedClientId, selectedMonth]);
-
-  async function handleExportCSV() {
-    if (!selectedClientId || !selectedMonth) return;
-    setExporting(true);
-    // v4.59.0 audit: try/finally so `exporting` always resets, and an error
-    // response is shown instead of being downloaded as the CSV.
-    try {
-      const res = await fetch(
-        `/api/reports/export?clientId=${selectedClientId}&month=${selectedMonth}&format=csv`
-      );
-      if (!res.ok) {
-        let msg = `Export failed (HTTP ${res.status})`;
-        try {
-          const j = await res.json();
-          if (j?.error) msg = j.error;
-        } catch {}
-        setError(msg);
-        return;
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `compliance-${selectedMonth}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Export failed");
-    } finally {
-      setExporting(false);
-    }
-  }
+  const q = (s: Sel, pdf = false) =>
+    `/api/report/monthly?${s.kind === "category" ? `category=${s.key}` : `company=${s.id}`}&month=${month}${pdf ? "&format=pdf" : ""}`;
+  const isSel = (s: Sel) => !!sel && sel.kind === s.kind && (s.kind === "category" ? sel.kind === "category" && sel.key === s.key : sel.kind === "company" && sel.id === s.id);
+  const monthName = months.find((m) => m.key === month)?.label ?? month;
 
   return (
-    <div>
-      <Header title="Monthly Reports" subtitle="Posting objective compliance by campaign and platform" />
-
-      {/* Filters */}
-      <div className="flex items-center gap-4 mb-6">
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Campaign</label>
-          <select
-            value={selectedClientId}
-            onChange={(e) => setSelectedClientId(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="">Select a campaign…</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-
-        {availableMonths.length > 0 && (
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Month</label>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              {availableMonths.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
+    <div className="space-y-5">
+      {/* Header band */}
+      <section className="relative overflow-hidden rounded-2xl text-white shadow-[0_10px_40px_rgba(168,40,31,0.25)]"
+        style={{ background: "linear-gradient(120deg, #CC3333 0%, #a8281f 60%, #6f1a14 100%)" }}>
+        <svg className="absolute right-0 top-0 h-full opacity-[0.10] pointer-events-none" viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" aria-hidden>
+          {Array.from({ length: 9 }, (_, i) => <circle key={i} cx={400} cy={100} r={30 + i * 34} fill="none" stroke="#fff" strokeWidth="1.5" />)}
+        </svg>
+        <div className="relative p-6 lg:p-7 flex flex-wrap items-end gap-6">
+          <div className="flex-1 min-w-[260px]">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75">Social Tracking · Monthly reports</div>
+            <h1 className="mt-1 text-[30px] leading-tight font-bold tracking-tight">{monthName}</h1>
+            <p className="mt-1.5 text-sm text-white/85 max-w-[620px]">
+              One page each, positives only. The Campaigns and Internal reports go to the Gershon team, and every campaign company
+              receives its own — automatically in the first days of the month. Preview them here exactly as they are sent.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2.5">
+            <select aria-label="Month" value={month} onChange={(e) => setMonth(e.target.value)}
+              className="h-10 rounded-lg bg-white text-[#a8281f] font-semibold text-sm px-3 border-0">
+              {months.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
             </select>
-          </div>
-        )}
-
-        {report && (
-          <div className="ml-auto">
-            <label className="block text-xs font-medium text-transparent mb-1">Export</label>
-            <button
-              onClick={handleExportCSV}
-              disabled={exporting}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
-            >
-              {exporting ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
-              Export CSV
-            </button>
-          </div>
-        )}
-      </div>
-
-      {loading && (
-        <div className="flex items-center gap-2 text-gray-400 text-sm py-12 justify-center">
-          <Loader2 size={16} className="animate-spin" />
-          Loading report…
-        </div>
-      )}
-
-      {error && (
-        <div className="text-red-600 text-sm p-4 bg-red-50 rounded-lg">{error}</div>
-      )}
-
-      {!loading && !report && !selectedClientId && clients.length > 0 && (
-        <div className="text-center py-16 text-gray-400 text-sm">
-          Select a campaign to view monthly compliance reports.
-        </div>
-      )}
-
-      {!loading && clients.length === 0 && (
-        <div className="mx-auto max-w-md mt-8 p-6 text-center bg-amber-50 border border-amber-200 rounded-xl">
-          <div className="text-sm font-semibold text-amber-900 mb-1">
-            No campaigns yet
-          </div>
-          <div className="text-xs text-amber-800">
-            Monthly reports cover companies categorized as Campaign. Tag a
-            company as Campaign on its per-client page (or in the Companies
-            list) and it will show up here.
+            <Link href={`/onepager?month=${month}`}
+              className="inline-flex items-center justify-center gap-2 h-10 rounded-lg bg-white/15 ring-1 ring-white/30 text-white text-sm font-bold px-4 hover:bg-white/25">
+              <Newspaper size={16} /> {monthName} one-pager
+            </Link>
           </div>
         </div>
+      </section>
+
+      {loading && <div className="gx-card p-8 flex items-center justify-center gap-2 text-sm text-gray-500"><Loader2 size={16} className="animate-spin" /> Building the {monthName} reports…</div>}
+      {error && <div className="gx-card p-6 text-sm text-red-700">{error}</div>}
+      {idx && !idx.categories.length && !idx.companies.length && (
+        <div className="gx-card p-6 text-sm text-gray-600">No campaign or internal company published anything in {idx.name} — there is no report for that month.</div>
       )}
 
-      {/* v4.59.0 audit: only once the month list has loaded for this company */}
-      {!loading && !error && selectedClientId && monthsLoaded && availableMonths.length === 0 && (
-        <div className="mx-auto max-w-md mt-8 p-6 text-center bg-amber-50 border border-amber-200 rounded-xl">
-          <div className="text-sm font-semibold text-amber-900 mb-1">
-            No data for this company yet
-          </div>
-          <div className="text-xs text-amber-800">
-            We have neither compliance records nor posts in any month for this client.
-            Run a sync from the client page, then come back.
-          </div>
-        </div>
-      )}
-
-      {!loading && !error && selectedClientId && availableMonths.length > 0 && !selectedMonth && (
-        <div className="text-center py-16 text-gray-400 text-sm">
-          Pick a month to view the report.
-        </div>
-      )}
-
-      {!loading && report && (
-        <div className="space-y-6">
-          {/* Executive summary */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">{report.clientName}</h2>
-                <div className="text-sm text-gray-500">{report.month}</div>
+      {idx && (idx.categories.length > 0 || idx.companies.length > 0) && (
+        <div className="grid gap-5 xl:grid-cols-[400px_1fr]">
+          {/* List */}
+          <div className="space-y-4">
+            {idx.categories.length > 0 && (
+              <div className="gx-card overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 text-[11px] font-bold uppercase tracking-[0.1em] text-gray-500 flex items-center gap-2"><Users size={13} /> Team reports</div>
+                {idx.categories.map((c) => {
+                  const s: Sel = { kind: "category", key: c.key };
+                  return (
+                    <ReportRow key={c.key} active={isSel(s)} onClick={() => setSel(s)}
+                      title={`${c.label} report`} head={c.head}
+                      big={c.pct !== null ? `${c.pct}%` : fmt(c.posts)} bigColor={tone(c.pct)}
+                      sub={`${c.companies} companies · ${fmt(c.posts)} posts · ${fmt(c.eng)} engagements`} to={c.to} />
+                  );
+                })}
               </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-gray-900">
-                  {formatPercent(report.overallCompletionRate)}
-                </div>
-                <div className="text-xs text-gray-500 mt-0.5">Overall completion</div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
-              <div>
-                <div className="text-2xl font-bold text-gray-900">{report.totalExpectedPlatformDays}</div>
-                <div className="text-xs text-gray-500">Expected days</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-green-600">{report.totalVerifiedPlatformDays}</div>
-                <div className="text-xs text-gray-500">Verified</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-red-600">{report.totalMissingPlatformDays}</div>
-                <div className="text-xs text-gray-500">Missing</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-amber-600">{report.totalUnknownPlatformDays}</div>
-                <div className="text-xs text-gray-500">Unknown</div>
-              </div>
-            </div>
-
-            {report.hasVerificationIssues && (
-              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-                <AlertCircle size={12} className="inline mr-1" />
-                Some days could not be verified due to API or connection issues. Final completion rate may differ from actual activity.
+            )}
+            {idx.companies.length > 0 && (
+              <div className="gx-card overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 text-[11px] font-bold uppercase tracking-[0.1em] text-gray-500 flex items-center gap-2"><Building2 size={13} /> Company reports ({idx.companies.length})</div>
+                {idx.companies.map((c) => {
+                  const s: Sel = { kind: "company", id: c.id };
+                  return (
+                    <ReportRow key={c.id} active={isSel(s)} onClick={() => setSel(s)}
+                      title={c.name} head={c.head}
+                      big={c.pct !== null ? `${c.pct}%` : `${c.posts}`} bigColor={tone(c.pct)}
+                      sub={`${c.posts} posts · ${fmt(c.eng)} engagements`} to={c.to} />
+                  );
+                })}
               </div>
             )}
           </div>
 
-          {/* Per-platform scorecards */}
-          <div className="space-y-4">
-            {report.platforms.map((p) => {
-              const badge = BADGE_CONFIG[p.badge as keyof typeof BADGE_CONFIG] ?? BADGE_CONFIG.BELOW_TARGET;
-              const BadgeIcon = badge.icon;
-
-              return (
-                <div key={p.platform} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-sm font-semibold text-gray-900">{p.platformLabel}</h3>
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${badge.color}`}
-                      >
-                        <BadgeIcon size={11} />
-                        {badge.label}
-                      </span>
-                    </div>
-                    <div className="text-xl font-bold text-gray-900">
-                      {formatPercent(p.completionRate)}
-                    </div>
-                  </div>
-
-                  <div className="px-6 py-4 grid grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <div className="text-gray-500 text-xs mb-0.5">Expected</div>
-                      <div className="font-semibold">{p.expectedDays} days</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500 text-xs mb-0.5">Verified</div>
-                      <div className="font-semibold text-green-700">{p.verifiedDays} days</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500 text-xs mb-0.5">Missing</div>
-                      <div className="font-semibold text-red-700">{p.missingDays} days</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500 text-xs mb-0.5">Followers</div>
-                      <div className="font-semibold text-gray-700">
-                        {p.followerStart !== null && p.followerEnd !== null ? (
-                          <>
-                            {p.followerEnd.toLocaleString()}
-                            <span className={`ml-1 text-xs ${(p.followerGrowth ?? 0) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                              ({(p.followerGrowth ?? 0) >= 0 ? "+" : ""}{p.followerGrowth?.toLocaleString()})
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-gray-400">N/A</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {p.missingDates.length > 0 && (
-                    <div className="px-6 pb-4">
-                      <div className="text-xs text-gray-500 mb-2">Missing dates:</div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {p.missingDates.map((d) => (
-                          <span key={d} className="px-2 py-0.5 bg-red-50 text-red-700 rounded text-xs font-mono">
-                            {d}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {p.verifiedLinks.length > 0 && (
-                    <div className="px-6 pb-4 border-t border-gray-50 pt-3">
-                      <div className="text-xs text-gray-500 mb-2">Verified posts:</div>
-                      <div className="space-y-1">
-                        {p.verifiedLinks.slice(0, 5).map((link) => (
-                          <div key={link.date} className="flex items-center gap-2 text-xs">
-                            <span className="font-mono text-gray-500">{link.date}</span>
-                            <a
-                              href={link.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline truncate max-w-sm"
-                            >
-                              {link.url}
-                            </a>
-                          </div>
-                        ))}
-                        {p.verifiedLinks.length > 5 && (
-                          <div className="text-xs text-gray-400">
-                            +{p.verifiedLinks.length - 5} more — export CSV for full list
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="text-xs text-gray-400 text-right">
-            Report generated at {new Date(report.generatedAt).toLocaleString("en-US")}
-          </div>
+          {/* Preview */}
+          {sel && (
+            <div className="gx-card overflow-hidden flex flex-col min-h-[720px]">
+              <div className="px-4 py-2.5 border-b border-gray-100 flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold text-gray-900 flex items-center gap-2"><Mail size={15} className="text-gray-400" /> Email preview</span>
+                <span className="flex-1" />
+                <a href={q(sel)} target="_blank" rel="noreferrer" className="gx-btn-secondary"><ExternalLink size={14} /> Open</a>
+                <a href={q(sel, true)} target="_blank" rel="noreferrer" className="gx-btn-primary"><FileDown size={14} /> PDF</a>
+              </div>
+              <iframe key={q(sel)} src={q(sel)} title="Report preview" className="flex-1 w-full bg-[#f3f2ee]" style={{ minHeight: 1000, border: 0 }} />
+            </div>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function ReportRow({ active, onClick, title, head, big, bigColor, sub, to }: {
+  active: boolean; onClick: () => void; title: string; head: string; big: string; bigColor: string; sub: string; to: string[];
+}) {
+  return (
+    <button onClick={onClick}
+      className={"w-full text-left px-4 py-3 border-t border-gray-100 first:border-t-0 flex items-start gap-3 transition-colors " +
+        (active ? "bg-[#fdf2f2] shadow-[inset_3px_0_0_#CC3333]" : "hover:bg-gray-50")}>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold text-gray-900 truncate">{title}</div>
+        <div className="text-xs text-gray-600 mt-0.5 line-clamp-2">{head}</div>
+        <div className="text-[11px] text-gray-500 mt-1">{sub}</div>
+        <div className={"text-[11px] mt-1 truncate " + (to.length ? "text-gray-500" : "text-amber-700")}>
+          {to.length ? `→ ${to.join(", ")}` : "No report email on file — not sent"}
+        </div>
+      </div>
+      <div className="text-xl font-bold tabular-nums shrink-0" style={{ color: bigColor }}>{big}</div>
+    </button>
   );
 }

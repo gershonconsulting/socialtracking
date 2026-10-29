@@ -11,6 +11,13 @@ SPEC: docs/THREE-PLATFORM-SPLIT.md (sections 2, 14-17 for this product).
 SIBLINGS: social.gershon.ai (repo social), Publish (publish.gershon.ai).
 
 STATUS
+[DONE] ✅ v0.7.0 BUILT 2026-10-29 (main, ❌ not deployed — waiting for Olivier's "deploy") — Monthly report redesign
+       (Olivier: "Monthly Report is also to redesign"): lib/reports/monthly/onepage.ts renders the email HTML AND the
+       one-page Letter PDF in the one-pager look (red header + objective badge, 4 tiles, What went well + Best posts,
+       company-by-company "days with a post" calendar — no red for empty days, rules of model.ts unchanged). Used by
+       send.ts (Campaigns / Internal / each campaign company) and the company-page PDF download. /reports page rebuilt:
+       month picker, team reports + company reports with recipients, live email preview, PDF. GET /api/report/monthly
+       ?format=index (any Gershon member; sending stays ADMIN).
 [DONE] ✅ v0.6.0 LIVE 2026-10-29 19:55 UTC (deploy run 40944028122, ping 0.6.0 build 20) — Olivier: "better dashboard, stunning one-pager of what was
        posted / what happened last month, remove Recycled, Competition, Partner, Prospect, Client for now",
        + "option to OFF the Chrome extension on some computer".
