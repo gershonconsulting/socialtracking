@@ -40,6 +40,8 @@ export interface OnePageView {
   top: ReportPost[];
   calendar: { title: string; rows: CalRow[]; year: number; month: number; dim: number };
   extra?: { title: string; items: Array<[string, string]> };
+  /** v0.8.0 client one-pager: every post of the month */
+  posts?: ReportPost[];
   footer: string;
   cta?: { label: string; href: string };
 }
@@ -77,9 +79,9 @@ export function categoryView(win: MonthWindow, m: CategoryModel, companies: Comp
     wins: m.highlights.map(([k, who, what]) => [`${titleCase(k)}: ${who}`, what]),
     top: m.top.slice(0, 3),
     calendar: { title: "Company by company — days with a post", rows, year: win.y, month: win.m, dim: win.dim },
-    extra: m.delivered?.length ? { title: "Company reports sent", items: [[m.delivered.join(", "), "each received its own one-page report"]] } : undefined,
+    extra: m.delivered?.length ? { title: "Client one-pagers sent", items: [[m.delivered.join(", "), "each received its own one-pager"]] } : undefined,
     footer: `Social Tracking by Gershon.AI · ${build}`,
-    cta: { label: `Open the ${win.name} one-pager`, href: `${siteUrl()}/onepager?month=${win.key}` },
+    cta: { label: `Open the ${win.name} client one-pagers`, href: `${siteUrl()}/onepager?month=${win.key}` },
   };
 }
 
@@ -101,6 +103,7 @@ export function companyView(win: MonthWindow, m: CompanyModel, c: CompanyMonth |
       year: win.y, month: win.m, dim: win.dim,
     },
     extra: m.ideas.length ? { title: `Ideas for ${win.nextName}`, items: m.ideas } : undefined,
+    posts: c?.all ?? [],
     footer: "Gershon Consulting · US market entry · gershonconsulting.com",
   };
 }
@@ -166,6 +169,13 @@ export function onePageHtml(v: OnePageView, subject: string, note?: string): str
  ${v.calendar.rows.length ? `<tr><td style="padding:16px 28px 8px;">${h2(v.calendar.title)}
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;border-collapse:collapse;"><tr><td style="width:150px;"></td>${head}<td style="width:56px;"></td></tr>${calRows}</table>
   <div style="font-size:10px;color:${MUT};margin-top:8px;">${legend}</div></td></tr>` : ""}
+ ${v.posts && v.posts.length ? `<tr><td style="padding:16px 28px 0;">${h2(`Everything published (${v.posts.length})`)}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${v.posts.slice(0, 40).map((p) => `<tr>
+   <td style="padding:5px 8px 5px 0;border-top:1px solid #f0f0f0;font-size:11px;color:${MUT};white-space:nowrap;width:44px;">${esc(p.date)}</td>
+   <td style="padding:5px 8px 5px 0;border-top:1px solid #f0f0f0;width:18px;"><span style="display:inline-block;min-width:14px;height:14px;line-height:14px;text-align:center;border-radius:3px;background:${p.net === "LinkedIn" ? LI : X};color:#fff;font-size:8px;font-weight:800;">${p.net === "LinkedIn" ? "in" : "X"}</span></td>
+   <td style="padding:5px 8px 5px 0;border-top:1px solid #f0f0f0;font-size:12px;color:${INK};">${p.url ? `<a href="${esc(p.url)}" style="color:${INK};text-decoration:none;">${esc(clipText(p.text, 90) || "Image or video post")}</a>` : esc(clipText(p.text, 90) || "Image or video post")}</td>
+   <td align="right" style="padding:5px 0;border-top:1px solid #f0f0f0;font-size:12px;font-weight:700;color:${INK};white-space:nowrap;">${p.eng ? fmt(p.eng) : ""}</td></tr>`).join("")}</table>
+  ${v.posts.length > 40 ? `<div style="font-size:11px;color:${MUT};margin-top:6px;">+ ${v.posts.length - 40} more</div>` : ""}</td></tr>` : ""}
  ${v.extra ? `<tr><td style="padding:16px 28px 0;">${h2(v.extra.title)}${v.extra.items.map(([a, b]) => `<div style="border-left:3px solid ${RED};padding:2px 0 2px 12px;margin:0 0 10px;"><div style="font-size:13px;font-weight:700;">${esc(a)}</div><div style="font-size:12px;color:${MUT};margin-top:2px;">${esc(b)}</div></div>`).join("")}</td></tr>` : ""}
  ${v.cta ? `<tr><td style="padding:14px 28px 0;"><a href="${esc(v.cta.href)}" style="display:inline-block;background:${RED};color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:11px 18px;border-radius:8px;">${esc(v.cta.label)}</a></td></tr>` : ""}
  <tr><td style="padding:22px 28px 20px;"><div style="border-top:1px solid ${RULE};padding-top:10px;font-size:10px;color:${MUT};">${esc(v.footer)}${note ? ` · ${esc(note)}` : ""}</div></td></tr>
@@ -302,6 +312,28 @@ export function onePagePdf(v: OnePageView): MrPdf {
     for (const [c, t] of lg) { p.rect(lx, y, 7, 7, c); p.text(lx + 10, y + 1, t, 6.6, false, P.MUT); lx += 16 + W(t, false, 6.6) + 10; }
     p.rect(lx, y, 7, 7, P.LI); p.rect(lx, y, 7, 2.8, P.X); p.text(lx + 10, y + 1, "both", 6.6, false, P.MUT);
     y -= 8;
+  }
+
+  // v0.8.0 — every post of the month, two columns, as many as fit above the ideas
+  if (v.posts && v.posts.length && y > M + 120) {
+    const reserve = v.extra ? 26 + 24 * Math.min(3, v.extra.items.length) : 0;
+    y -= 16;
+    pdfH2(p, M, y, `Everything published (${v.posts.length})`);
+    y -= 13;
+    const colW = (CW - 16) / 2, lh = 10.5;
+    const perCol = Math.max(0, Math.floor((y - (M + 24 + reserve)) / lh));
+    const shown = v.posts.slice(0, perCol * 2);
+    shown.forEach((t, i) => {
+      const col = i < perCol ? 0 : 1, row = i % perCol;
+      const x = M + col * (colW + 16), yy = y - row * lh;
+      p.text(x, yy, t.date, 6.6, false, P.MUT);
+      p.rect(x + 30, yy - 1.5, 9, 8, t.net === "LinkedIn" ? P.LI : P.X);
+      p.ctext(x + 34.5, yy + 0.3, t.net === "LinkedIn" ? "in" : "X", 5, true, P.WHITE);
+      p.text(x + 44, yy, clip(t.text || "Image or video post", 7, false, colW - 44 - 26), 7, false, P.INK);
+      if (t.eng) p.rtext(x + colW, yy, fmt(t.eng), 7, true, P.INK);
+    });
+    y -= Math.min(perCol, shown.length) * lh + 2;
+    if (shown.length < v.posts.length) { p.text(M, y, `+ ${v.posts.length - shown.length} more in the email`, 6.6, false, P.MUT); y -= 8; }
   }
 
   // extra (ideas / company reports sent)

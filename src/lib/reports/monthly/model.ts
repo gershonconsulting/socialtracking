@@ -55,6 +55,8 @@ export interface CompanyMonth {
   /** Campaign companies only: posts-per-week objective and the month's target. */
   objective: { perWeek: number; target: number } | null;
   top: ReportPost[];
+  /** v0.8.0: every post of the month, oldest first (optional: older callers don't fill it) */
+  all?: ReportPost[];
   themes: Array<[string, number]>;
   bestWeekday: string | null;
   /** What the Competition report learns from (see competition.ts). */

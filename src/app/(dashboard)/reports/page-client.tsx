@@ -78,8 +78,8 @@ export default function ReportsPage() {
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75">Social Tracking · Monthly reports</div>
             <h1 className="mt-1 text-[30px] leading-tight font-bold tracking-tight">{monthName}</h1>
             <p className="mt-1.5 text-sm text-white/85 max-w-[620px]">
-              One page each, positives only. The Campaigns and Internal reports go to the Gershon team, and every campaign company
-              receives its own — automatically in the first days of the month. Preview them here exactly as they are sent.
+              One page each, positives only. Every campaign client receives its own one-pager, and the Gershon team gets the
+              Campaigns summary — automatically in the first days of the month. Preview them here exactly as they are sent.
             </p>
           </div>
           <div className="flex flex-col gap-2.5">
@@ -89,7 +89,7 @@ export default function ReportsPage() {
             </select>
             <Link href={`/onepager?month=${month}`}
               className="inline-flex items-center justify-center gap-2 h-10 rounded-lg bg-white/15 ring-1 ring-white/30 text-white text-sm font-bold px-4 hover:bg-white/25">
-              <Newspaper size={16} /> {monthName} one-pager
+              <Newspaper size={16} /> {monthName} client one-pagers
             </Link>
           </div>
         </div>
@@ -121,7 +121,7 @@ export default function ReportsPage() {
             )}
             {idx.companies.length > 0 && (
               <div className="gx-card overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100 text-[11px] font-bold uppercase tracking-[0.1em] text-gray-500 flex items-center gap-2"><Building2 size={13} /> Company reports ({idx.companies.length})</div>
+                <div className="px-4 py-3 border-b border-gray-100 text-[11px] font-bold uppercase tracking-[0.1em] text-gray-500 flex items-center gap-2"><Building2 size={13} /> Client one-pagers ({idx.companies.length})</div>
                 {idx.companies.map((c) => {
                   const s: Sel = { kind: "company", id: c.id };
                   return (

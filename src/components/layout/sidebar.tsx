@@ -50,7 +50,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
       { href: "/summary", icon: ClipboardCheck, label: "Summary" },
-      { href: "/onepager", icon: Newspaper, label: "One-pager" },
+      { href: "/onepager", icon: Newspaper, label: "Client one-pagers" },
       { href: "/reports", icon: FileText, label: "Monthly reports" },
       { href: "/clients", icon: Building2, label: "Companies" },
       { href: "/extension", icon: Puzzle, label: "Extension" },

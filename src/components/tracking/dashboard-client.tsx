@@ -380,7 +380,7 @@ function TrackingDashboardView({ data }: { data: TrackingDashData }) {
               </div>
               <Link href={`/onepager?month=${addMonths(mk, -1)}`}
                 className="inline-flex items-center justify-center gap-2 h-10 rounded-lg bg-white text-[#a8281f] text-sm font-bold px-4 hover:bg-[#fdf2f2]">
-                <Newspaper size={16} /> {monthLabel(addMonths(mk, -1), true)} one-pager
+                <Newspaper size={16} /> {monthLabel(addMonths(mk, -1), true)} client one-pagers
               </Link>
             </div>
           </div>

@@ -17,7 +17,7 @@ import { loadCategories, loadCompanyExtras, monthWindow, primaryOrgId } from "./
 import { competitionHtml, competitionModel, competitionPdf, competitionSubject, type CompetitionModel } from "./competition";
 import { withAuditBcc } from "@/lib/mail-bcc";
 import { categoryView, companyView, onePageHtml, onePagePdf } from "./onepage";
-import { PRODUCT_CLIENT_TYPES, PRODUCT_NAME, PRODUCT_VERSION } from "@/lib/product";
+import { PRODUCT_NAME, PRODUCT_VERSION } from "@/lib/product";
 
 export const MONTHLY_SENT_KEY = "monthly_report_sent";
 const REPORT_INBOX = "report@gershonconsulting.com";
@@ -81,7 +81,9 @@ export async function buildMonthly(month?: string | null): Promise<MonthlyBuild>
   const win = monthWindow(month);
   const orgId = await primaryOrgId();
   // Social Tracking covers CAMPAIGN and INTERNAL companies only (Olivier, 2026-10-26).
-  const cats = (await loadCategories(win, orgId)).filter((c) => (PRODUCT_CLIENT_TYPES as readonly string[]).includes(c.key));
+  // v0.8.0 (Olivier, 2026-10-29): "No need for internal, just the clients" — monthly reports
+  // cover CAMPAIGN clients only: each client's one-pager + the Campaigns summary for the team.
+  const cats = (await loadCategories(win, orgId)).filter((c) => c.key === "CAMPAIGN");
   const companies: MonthlyBuild["companies"] = [];
   for (const cat of cats.filter((c) => c.perCompany)) {
     for (const c of cat.companies) {

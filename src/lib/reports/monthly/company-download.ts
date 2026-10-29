@@ -30,6 +30,16 @@ export class CompanyReportError extends Error {
 }
 
 export async function buildCompanyPdf(clientId: string, monthKey?: string | null, now = new Date()) {
+  const r = await buildClientOnePager(clientId, monthKey, now);
+  return { pdf: onePagePdf(r.view), filename: r.filename };
+}
+
+/**
+ * v0.8.0 — the client one-pager (Olivier, 2026-10-29: "a one pager per company we
+ * do campaign for so we can send it for the monthly report"). One view model for
+ * the web page (/onepager?company=), the email and the PDF — they can never differ.
+ */
+export async function buildClientOnePager(clientId: string, monthKey?: string | null, now = new Date()) {
   // Tenant-scoped read: a signed-in user only ever finds their own workspace's companies.
   const client = await prisma.client.findFirst({
     where: { id: clientId },
@@ -61,9 +71,9 @@ export async function buildCompanyPdf(clientId: string, monthKey?: string | null
 
   if (inProgress) win.nextName = `the rest of ${win.name}`; // "Ideas for the rest of October"
   void buildLabel;
-  const pdf = onePagePdf(companyView(win, model, c));
-  const filename = `social-${slug(client.name) || "company"}-${key}${inProgress ? "-to-date" : ""}-v${APP_VERSION}.pdf`;
-  return { pdf, filename };
+  const view = companyView(win, model, c);
+  const filename = `Gershon-${slug(client.name) || "company"}-${key}${inProgress ? "-to-date" : ""}-v${APP_VERSION}.pdf`;
+  return { view, model, win, key, inProgress, client, recipients: extras.recipients, filename };
 }
 
 export function emptyModel(win: MonthWindow, id: string, name: string, toName: string | null, inProgress: boolean): CompanyModel {
