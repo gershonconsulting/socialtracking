@@ -388,7 +388,7 @@ export function ContentIntelligence({ clientId, clientName }: { clientId: string
                   <div>
                     <div className="text-sm font-semibold text-amber-900">AI analysis is not configured</div>
                     <div className="text-xs text-amber-800 mt-0.5">
-                      Add an Anthropic API key in <a href="/settings" className="underline font-medium">Settings → Content Intelligence (AI)</a>.
+                      Add an Anthropic API key in <a href="https://social.gershon.ai/settings" target="_blank" rel="noreferrer" className="underline font-medium">Settings → Content Intelligence (AI)</a>.
                       The Signals tab works without it.
                     </div>
                   </div>

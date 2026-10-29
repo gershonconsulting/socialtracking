@@ -11,8 +11,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, AlertTriangle, RefreshCw, Loader2, Search } from "lucide-react";
+import { AlertTriangle, RefreshCw, Loader2, Search } from "lucide-react";
 import { Header } from "@/components/layout/header";
+import { AddCompanyButton } from "@/components/clients/add-company-dialog";
 import {
   COLLECTED_NETWORKS,
   VERDICT_META,
@@ -174,13 +175,7 @@ export function ClientsPageClient() {
         title="Companies"
         subtitle={subtitle}
         actions={
-          <Link
-            href="/admin?tab=clients&action=new"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-          >
-            <Plus size={15} />
-            Add company
-          </Link>
+          <AddCompanyButton />
         }
       />
 

@@ -58,30 +58,6 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   },
 ];
 
-/**
- * Whether this workspace still has setup left. Asked once per mount; a failure
- * answers "complete", because a menu entry is not worth an error state.
- */
-function useSetupIncomplete(): boolean {
-  const [incomplete, setIncomplete] = useState(false);
-  useEffect(() => {
-    let live = true;
-    void (async () => {
-      try {
-        const r = await fetch("/api/onboarding");
-        const j = await r.json();
-        if (live && j?.success) setIncomplete(!j.data.complete);
-      } catch {
-        /* leave it hidden */
-      }
-    })();
-    return () => {
-      live = false;
-    };
-  }, []);
-  return incomplete;
-}
-
 function initials(name?: string | null, email?: string | null): string {
   const src = (name || email || "?").replace(/[^A-Za-z ]/g, " ").trim();
   const parts = src.split(/\s+/).filter(Boolean);
@@ -92,18 +68,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const role = (session?.user as { role?: string } | undefined)?.role?.toLowerCase() ?? "user";
-  const setupIncomplete = false;
-
-  // "Getting started" earns a place in the menu only while there is still
-  // something to do. A finished workspace shouldn't carry a permanent reminder
-  // of setup it completed months ago.
-  const groups = setupIncomplete
-    ? navGroups.map((g) =>
-        g.label === "Overview"
-          ? { ...g, items: [{ href: "/welcome", icon: Rocket, label: "Getting started" }, ...g.items] }
-          : g,
-      )
-    : navGroups;
+  // v0.6.1: no "Getting started" (/welcome is a Social page, not ours).
+  const groups = navGroups;
 
   return (
     <aside className="w-[248px] flex-shrink-0 bg-white text-gray-700 flex flex-col h-screen sticky top-0 border-r border-[#e5e7eb]">

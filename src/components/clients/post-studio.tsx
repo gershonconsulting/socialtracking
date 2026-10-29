@@ -407,7 +407,7 @@ export function PostStudio({ clientId, clientName }: { clientId: string; clientN
                 <div className="text-sm font-semibold text-amber-900">AI is not configured</div>
                 <div className="text-xs text-amber-800 mt-0.5">
                   Add an Anthropic API key in{" "}
-                  <a href="/settings" className="underline font-medium">
+                  <a href="https://social.gershon.ai/settings" target="_blank" rel="noreferrer" className="underline font-medium">
                     Settings → Content Intelligence (AI)
                   </a>
                   . Post Studio uses the same key.
