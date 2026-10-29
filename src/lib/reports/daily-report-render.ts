@@ -1,7 +1,7 @@
 /**
  * HTML for the daily progress report email.
  *
- * Inline CSS only — Gmail strips <style> blocks. Gershon red (#FE1B04) on
+ * Inline CSS only — Gmail strips <style> blocks. Gershon red (#CC3333) on
  * white, matching the daily digest so the two read as one family.
  *
  * The visual hierarchy is deliberate: if the system failed to do its job, the
@@ -11,7 +11,7 @@
 import type { DailyReport, Metric } from "./daily-report";
 import { siteUrl } from "@/lib/site";
 
-const RED = "#FE1B04";
+const RED = "#CC3333";
 const SITE = siteUrl();
 
 const esc = (s: string) =>

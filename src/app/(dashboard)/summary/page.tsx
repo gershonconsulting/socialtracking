@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
  */
 const monthName = (mk: string) => toD(`${mk}-01`).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 const shortDate = (s: string) => toD(s).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
-const tone = (p: number) => (p >= 0.9 ? "#2E7D4F" : p >= 0.6 ? "#B45309" : "#D92D20");
+const tone = (p: number) => (p >= 0.9 ? "#2E7D4F" : p >= 0.6 ? "#B45309" : "#CC3333");
 
 function ago(iso: string | null, nowMs: number): string {
   if (!iso) return "never";
@@ -99,7 +99,7 @@ export default async function SummaryPage({ searchParams }: { searchParams: Prom
           note={tot.unknown ? "provisional — some days unverifiable" : closed ? "month closed" : "month to date"} />
         <Tile label="Expected" value={String(tot.expected)} note="weekdays with a post, whole month" />
         <Tile label="Verified" value={String(tot.verified)} color="#2E7D4F" note={`of ${tot.due} due so far`} />
-        <Tile label="Missing" value={String(tot.missing)} color={tot.missing ? "#D92D20" : undefined} note="no post, evidence fresh" />
+        <Tile label="Missing" value={String(tot.missing)} color={tot.missing ? "#CC3333" : undefined} note="no post, evidence fresh" />
         <Tile label="Unknown" value={String(tot.unknown)} color={tot.unknown ? "#6B7280" : undefined} note="not verifiable yet — not a miss" />
         <Tile label="Pending" value={String(tot.pending)} note="not due yet" />
       </div>

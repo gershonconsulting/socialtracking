@@ -305,7 +305,7 @@ export function renderCompetitive(r: CompetitiveReport): string {
     r.daily
       .map(
         (d) => `<tr><td ${TD}>${shortDay(d.key)}</td><td ${TDR}>${d.competitors}</td><td ${TDR}>${d.partners}</td><td ${TDR}>${d.linkedin}</td><td ${TDR}>${d.x}</td>
-        <td ${TDR}><b style="color:${d.total ? "#111" : "#b91c1c"};">${d.total}</b></td><td ${TD}>${bar(d.total, maxDay, "#FE1B04")}</td></tr>`,
+        <td ${TDR}><b style="color:${d.total ? "#111" : "#b91c1c"};">${d.total}</b></td><td ${TD}>${bar(d.total, maxDay, "#CC3333")}</td></tr>`,
       )
       .join(""),
   );
@@ -338,7 +338,7 @@ export function renderCompetitive(r: CompetitiveReport): string {
           (p) => `<div style="padding:10px 0;border-bottom:1px solid #f1f1f1;">
         <div style="font-size:12px;color:#6b7280;"><b style="color:#111;">${esc(p.company)}</b> · ${p.kind === "PARTNER" ? "Partner" : "Competitor"} · ${esc(p.platform)} · ${esc(p.date)} · <b>${fmt(p.engagement)}</b> engagements</div>
         <div style="font-size:13px;margin-top:4px;line-height:1.45;">${esc(p.text)}${p.text.length >= 220 ? "…" : ""}</div>
-        ${p.url ? `<a href="${esc(p.url)}" style="font-size:12px;color:#FE1B04;">Open the post</a>` : ""}
+        ${p.url ? `<a href="${esc(p.url)}" style="font-size:12px;color:#CC3333;">Open the post</a>` : ""}
       </div>`,
         )
         .join("")

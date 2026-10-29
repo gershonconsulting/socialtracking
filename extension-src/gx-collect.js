@@ -123,7 +123,21 @@
     try { var r = await chrome.storage.local.get("trk_workspaceToken"); return !!(r && r.trk_workspaceToken); } catch (e) { return false; }
   }
 
+  // 0.2.0: this computer can be switched OFF on socialtracking.gershon.ai/extension
+  // (gx-remote.js stores the answer of every check-in as trk_paused). OFF stops
+  // every automatic run — daily, catch-up, first run, dashboard requests. A run
+  // started by hand ON this computer (popup "Verify", the page bridge) still works.
+  async function paused() {
+    try { var r = await chrome.storage.local.get("trk_paused"); return !!(r && r.trk_paused); } catch (e) { return false; }
+  }
+  self.gxPaused = paused;
+  var BY_HAND = { popup: 1, page: 1 };
+
   async function guardedRun(opts) {
+    if (!(opts && BY_HAND[opts.trigger]) && (await paused())) {
+      return { ok: false, paused: true, totalUpserted: 0, totalFailed: 0, accountCount: 0, badPlatforms: [],
+        ingestErrors: ["Verification is switched OFF on this computer (socialtracking.gershon.ai/extension)."] };
+    }
     if (!(await bound())) {
       return { ok: false, totalUpserted: 0, totalFailed: 0, accountCount: 0, badPlatforms: [],
         ingestErrors: ["Not connected. Open socialtracking.gershon.ai in this browser and sign in."] };
@@ -170,7 +184,7 @@
   }
 
   async function catchUp(trigger) {
-    if (running || !(await bound())) return;
+    if (running || !(await bound()) || (await paused())) return;
     if ((await staleHours()) < STALE_AFTER_H) return;
     try { chrome.action.setBadgeText({ text: "…" }); } catch (e) {}
     var res = null;

@@ -77,6 +77,19 @@
       var r = await fetch(url);
       if (!r.ok) return;
       var j = await r.json().catch(function () { return null; });
+      // 0.2.0: switched OFF from /extension → remember it (gx-collect.js stops every
+      // automatic run) and show OFF on the toolbar icon. Switched back ON → clear it.
+      if (j && j.success && j.data) {
+        var off = !!j.data.paused;
+        try {
+          var was = await chrome.storage.local.get("trk_paused");
+          if (!!(was && was.trk_paused) !== off) {
+            await chrome.storage.local.set({ trk_paused: off });
+            chrome.action.setBadgeText({ text: off ? "OFF" : "" });
+          }
+        } catch (e) {}
+        if (off) return;
+      }
       var job = j && j.data && j.data.job;
       if (!job) return;
       try { chrome.action.setBadgeText({ text: "…" }); } catch (e) {}

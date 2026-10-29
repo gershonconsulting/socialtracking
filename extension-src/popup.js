@@ -1,4 +1,4 @@
-// Social Tracking — Post Verifier popup (0.1.0, from Social's popup).
+// Social Tracking — Post Verifier popup (0.2.0, from Social's popup).
 const ORIGIN = "https://socialtracking.gershon.ai";
 
 const installedVersion = chrome.runtime.getManifest().version;
@@ -134,3 +134,10 @@ document.getElementById("sync-now").addEventListener("click", async function (e)
 
 renderLast();
 checkVersion();
+
+// 0.2.0: say so when this computer is switched OFF (socialtracking.gershon.ai/extension).
+chrome.storage.local.get("trk_paused", function (r) {
+  if (r && r.trk_paused) {
+    show("Switched <b>OFF</b> on this computer — no automatic verification here. Switch it back ON at socialtracking.gershon.ai/extension. “Verify now” still works by hand.", "warn");
+  }
+});

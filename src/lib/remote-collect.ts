@@ -56,9 +56,18 @@ export type CollectJob = {
 
 export type CollectAgent = { id: string; label: string; version: string; lastSeenAt: string };
 
-export type QueueState = { jobs: CollectJob[]; agents: Record<string, CollectAgent> };
+/**
+ * v0.6.0 (Olivier, 2026-10-29: "we need the option to OFF the Chrome extension
+ * on some computer"). `paused` lists the installs switched OFF from /extension.
+ * A paused install still checks in (so it stays visible and can be switched
+ * back ON from any browser) but is never handed a job, and its check-in answer
+ * tells the extension (0.2.0+) to stop its own daily / catch-up runs too.
+ * Kept apart from `agents` so the 30-day clean-up of old installs never turns
+ * a computer back ON by forgetting it.
+ */
+export type QueueState = { jobs: CollectJob[]; agents: Record<string, CollectAgent>; paused?: string[] };
 
-const EMPTY: QueueState = { jobs: [], agents: {} };
+const EMPTY: QueueState = { jobs: [], agents: {}, paused: [] };
 
 type Db = typeof rawPrisma;
 
@@ -70,7 +79,11 @@ function parse(value: string | null | undefined): QueueState {
   if (!value) return structuredClone(EMPTY);
   try {
     const j = JSON.parse(value);
-    return { jobs: Array.isArray(j.jobs) ? j.jobs : [], agents: j.agents && typeof j.agents === "object" ? j.agents : {} };
+    return {
+      jobs: Array.isArray(j.jobs) ? j.jobs : [],
+      agents: j.agents && typeof j.agents === "object" ? j.agents : {},
+      paused: Array.isArray(j.paused) ? j.paused.filter((x: unknown) => typeof x === "string") : [],
+    };
   } catch {
     return structuredClone(EMPTY);
   }
@@ -120,7 +133,18 @@ export function enqueue(s: QueueState, clientId: string | null, clientName: stri
   return job;
 }
 
-/** Record the agent and hand it the oldest waiting job, if any. */
+export const isPaused = (s: QueueState, agentId: string) => (s.paused ?? []).includes(agentId);
+
+/** Switch one install ON (paused = false) or OFF (paused = true). Returns true if anything changed. */
+export function setPaused(s: QueueState, agentId: string, paused: boolean): boolean {
+  const cur = new Set(s.paused ?? []);
+  if (paused === cur.has(agentId)) return false;
+  if (paused) cur.add(agentId); else cur.delete(agentId);
+  s.paused = [...cur];
+  return true;
+}
+
+/** Record the agent and hand it the oldest waiting job, if any — never to a paused install. */
 export function claim(s: QueueState, agent: { id: string; label: string; version: string }, now: number): { job: CollectJob | null; changed: boolean } {
   let changed = expire(s, now);
   const prev = s.agents[agent.id];
@@ -135,6 +159,7 @@ export function claim(s: QueueState, agent: { id: string; label: string; version
       changed = true;
     }
   }
+  if (isPaused(s, agent.id)) return { job: null, changed };
   const job = s.jobs.find((j) => j.status === "queued") || null;
   if (job) {
     job.status = "running";
@@ -218,9 +243,26 @@ export async function requestCollection(orgId: string, clientId: string | null, 
 }
 
 export async function claimNext(orgId: string, agent: { id: string; label: string; version: string }, db: Db = rawPrisma): Promise<CollectJob | null> {
+  return (await claimNextWithState(orgId, agent, db)).job;
+}
+
+/** claimNext plus whether this install is switched OFF (v0.6.0 — the extension stops its own runs then). */
+export async function claimNextWithState(
+  orgId: string,
+  agent: { id: string; label: string; version: string },
+  db: Db = rawPrisma,
+): Promise<{ job: CollectJob | null; paused: boolean }> {
   return update(db, orgId, (s) => {
     const { job, changed } = claim(s, agent, Date.now());
-    return [job ? structuredClone(job) : null, changed];
+    return [{ job: job ? structuredClone(job) : null, paused: isPaused(s, agent.id) }, changed];
+  });
+}
+
+/** v0.6.0: switch a Chrome ON or OFF from the dashboard. */
+export async function setAgentPaused(orgId: string, agentId: string, paused: boolean, db: Db = rawPrisma): Promise<boolean> {
+  return update(db, orgId, (s) => {
+    const changed = setPaused(s, agentId, paused);
+    return [paused, changed];
   });
 }
 
@@ -239,7 +281,8 @@ export async function reportResult(
 
 export type QueueView = {
   jobs: CollectJob[];
-  agents: (CollectAgent & { live: boolean })[];
+  agents: (CollectAgent & { live: boolean; paused: boolean })[];
+  /** Live AND switched ON — the Chromes that will actually take a job. */
   listening: number;
 };
 
@@ -248,7 +291,7 @@ export async function queueStatus(orgId: string, db: Db = rawPrisma): Promise<Qu
   const now = Date.now();
   expire(state, now); // for display only; the next write persists it
   const agents = Object.values(state.agents)
-    .map((a) => ({ ...a, live: now - Date.parse(a.lastSeenAt) <= AGENT_LIVE_MS }))
+    .map((a) => ({ ...a, live: now - Date.parse(a.lastSeenAt) <= AGENT_LIVE_MS, paused: isPaused(state, a.id) }))
     .sort((a, b) => Date.parse(b.lastSeenAt) - Date.parse(a.lastSeenAt));
-  return { jobs: state.jobs.slice().reverse(), agents, listening: agents.filter((a) => a.live).length };
+  return { jobs: state.jobs.slice().reverse(), agents, listening: agents.filter((a) => a.live && !a.paused).length };
 }

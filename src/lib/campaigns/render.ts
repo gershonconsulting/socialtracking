@@ -16,7 +16,7 @@
 import type { CampaignMonth, CampaignMonthlyReport } from "./monthly";
 import { APP_URL } from "./monthly";
 
-const RED = "#FE1B04";
+const RED = "#CC3333";
 const INK = "#111827";
 const MUTED = "#6b7280";
 const LINE = "#e5e7eb";

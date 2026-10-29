@@ -93,12 +93,12 @@
   ::selection { background: #FBDCD8; color: #15171C; }
 }
 
-/* Older pages hard-code the previous brand red (#FE1B04, hover #d11200) as
+/* Older pages hard-code the previous brand red (#CC3333, hover #d11200) as
    arbitrary Tailwind values. Map them onto the new signal red so every page
    matches without touching each file. */
-.bg-\[\#FE1B04\] { background-color: #D92D20 !important; }
-.text-\[\#FE1B04\] { color: #D92D20 !important; }
-.border-\[\#FE1B04\] { border-color: #D92D20 !important; }
+.bg-\[\#CC3333\] { background-color: #CC3333 !important; }
+.text-\[\#CC3333\] { color: #CC3333 !important; }
+.border-\[\#CC3333\] { border-color: #CC3333 !important; }
 .bg-\[\#d11200\], .hover\:bg-\[\#d11200\]:hover { background-color: #B42318 !important; }
 
 /* Reusable pieces for new and refreshed pages. */

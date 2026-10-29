@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { List, Sparkles, PenLine, Swords } from "lucide-react";
+import { List, Sparkles, PenLine } from "lucide-react";
 import { PostsListing } from "./posts-listing";
 import { ContentIntelligence } from "./content-intelligence";
 import { PostStudio } from "./post-studio";
-import { CompetitorWatch } from "./competitor-watch";
 
 /**
  * Company detail: collected content (Posts), the analysis layer built on top of
@@ -34,13 +33,13 @@ export function ClientContentTabs({
     ...(isCampaign ? [{ key: "studio" as const, label: "Post Studio", icon: PenLine }] : []),
     // v4.35.0: only on the workspace's OWN company. On a client's page it filed
     // that client's competitors into this workspace's Competition list.
-    ...(clientType === "INTERNAL" ? [{ key: "competitors" as const, label: "Competitor Watch", icon: Swords }] : []),
+    // v0.6.0: Competition removed from Social Tracking for now — no Competitor Watch tab.
   ];
 
   // Defensive: if a company is re-categorized away from CAMPAIGN while this
   // panel is mounted, don't leave a now-hidden tab selected.
   const active =
-    (tab === "studio" && !isCampaign) || (tab === "competitors" && clientType !== "INTERNAL") ? "posts" : tab;
+    (tab === "studio" && !isCampaign) || tab === "competitors" ? "posts" : tab;
 
   return (
     <div className="space-y-4">
@@ -62,7 +61,6 @@ export function ClientContentTabs({
       {active === "posts" && <PostsListing clientId={clientId} />}
       {active === "intelligence" && <ContentIntelligence clientId={clientId} clientName={clientName} />}
       {active === "studio" && isCampaign && <PostStudio clientId={clientId} clientName={clientName} />}
-      {active === "competitors" && <CompetitorWatch clientId={clientId} clientName={clientName} />}
     </div>
   );
 }

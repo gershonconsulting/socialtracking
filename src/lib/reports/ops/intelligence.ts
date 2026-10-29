@@ -349,7 +349,7 @@ export function renderIntelligence(r: IntelligenceReport): string {
           (e) => `<div style="padding:10px 0;border-bottom:1px solid #f1f1f1;">
         <div style="font-size:13px;"><b>${esc(e.company)}</b> — <span style="color:#6b7280;">“${esc(e.post)}${e.post.length >= 160 ? "…" : ""}”</span></div>
         <div style="font-size:13px;margin-top:4px;">→ ${esc(e.how)}</div>
-        ${e.url ? `<a href="${esc(e.url)}" style="font-size:12px;color:#FE1B04;">Open the post</a>` : ""}
+        ${e.url ? `<a href="${esc(e.url)}" style="font-size:12px;color:#CC3333;">Open the post</a>` : ""}
       </div>`,
         )
         .join("")

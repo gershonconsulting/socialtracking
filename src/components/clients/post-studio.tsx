@@ -96,7 +96,7 @@ const WINDOWS = [
   { value: 3650, label: "All time" },
 ];
 
-const RED = "#FE1B04";
+const RED = "#CC3333";
 
 // ─── Building blocks ─────────────────────────────────────────────────────────
 
@@ -177,7 +177,7 @@ function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) 
 
 function TagPill({ pick, tone }: { pick: HashtagPick; tone: "core" | "rotating" | "drop" }) {
   const style = {
-    core: "bg-red-50 text-[#FE1B04] border-red-200",
+    core: "bg-red-50 text-[#CC3333] border-red-200",
     rotating: "bg-gray-50 text-gray-700 border-gray-200",
     drop: "bg-gray-50 text-gray-400 border-gray-200 line-through",
   }[tone];

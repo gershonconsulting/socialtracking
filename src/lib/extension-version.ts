@@ -16,7 +16,7 @@
  *   - the red out-of-date banner on every dashboard page
  *   - the /extension page
  */
-export const EXTENSION_LATEST = "0.1.0";
+export const EXTENSION_LATEST = "0.2.0";
 
 export const EXTENSION_NAME = "Social Tracking by Gershon.AI \u2014 Post Verifier";
 
@@ -39,6 +39,8 @@ export const BRIDGE = {
   PONG: "TRACKING_PONG",
   HELLO: "TRACKING_HELLO",
   BOUND: "TRACKING_BOUND",
+  /** v0.6.0 / extension 0.2.0: page → extension, switch THIS computer ON or OFF at once. */
+  SET_PAUSED: "TRACKING_SET_PAUSED",
 } as const;
 
 /** App version — Social Tracking's own (lib/product.ts, kept in sync with package.json). */

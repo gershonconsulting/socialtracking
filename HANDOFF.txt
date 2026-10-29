@@ -11,6 +11,28 @@ SPEC: docs/THREE-PLATFORM-SPLIT.md (sections 2, 14-17 for this product).
 SIBLINGS: social.gershon.ai (repo social), Publish (publish.gershon.ai).
 
 STATUS
+[DONE] ✅ v0.6.0 BUILT 2026-10-29 (repo main) — Olivier: "better dashboard, stunning one-pager of what was
+       posted / what happened last month, remove Recycled, Competition, Partner, Prospect, Client for now",
+       + "option to OFF the Chrome extension on some computer".
+       ✅ /onepager?month=YYYY-MM[&internal=1] (default = last month; menu "One-pager"; button in the dashboard
+          hero): red header + objective ring, 5 KPIs (posts LI/X, engagements, eng/post, views, followers gained),
+          "What happened" (sentences built only from the page's numbers — lib/tracking/onepager-model.ts),
+          top 3 posts, company scoreboard + day-by-day posting calendar, every post of the month.
+          Print / Save as PDF = ONE landscape A4 (checked with Chromium PDF). Loader lib/tracking/onepager.ts.
+       ✅ Dashboard: hero (ring, "X of Y posting days delivered", 5 stats, window picker, one-pager button),
+          "Who posted when — last 4 weeks" calendar per company. Unified Gershon.ai look: white sidebar, red pill,
+          tailwind red = #CC3333/#a8281f/#fdf2f2, neutral grays (#e5e7eb borders, #1d1d1f ink).
+       ✅ Categories: company category editor = Campaign / Internal only; Competitor Watch tab removed.
+       ✅ Extension ON/OFF per computer: /extension "This computer" switch + a switch on every Chrome listed.
+          Server: tracking_collect_queue.paused[] (lib/remote-collect.ts setAgentPaused / claimNextWithState),
+          POST /api/collect/agent {agentId,on}; a paused install still checks in but never gets a job; listening
+          counts ON installs only. Extension 0.2.0 (Post Verifier): stores trk_paused from each check-in, stops
+          daily / catch-up / remote runs (popup "Verify now" still works), OFF badge, HELLO/PONG carry agentId +
+          paused, TRACKING_SET_PAUSED applies at once. Without the extension the switch makes the computer a
+          viewer (localStorage socialtracking_collecting=off) — no install notice there.
+       ✅ Verified: tsc, npm run build, remote-collect 26/26, remote-collect-e2e 16/16 (incl. OFF/ON), attainment
+          10/10; screenshots of dashboard, one-pager, This-computer card with sample data.
+[TODO] ❌ Load-unpacked folder on Olivier's computer must get extension-src/ v0.2.0 (gx-update.js reloads it).
 [DONE] ✅ v0.4.0 BUILT 2026-10-26 (repo main) — NOT DEPLOYED YET: awaiting Olivier's approval.
        Deploy = empty commit on the SOCIAL repo, branch deploy/socialtracking (workflow deploy-siblings.yml).
        Each platform now has its own Dashboard, Summary and Chrome extension:

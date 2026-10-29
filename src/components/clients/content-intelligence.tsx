@@ -123,7 +123,7 @@ const WINDOWS = [
   { value: 3650, label: "All time" },
 ];
 
-const RED = "#FE1B04";
+const RED = "#CC3333";
 
 // ─── Small building blocks ───────────────────────────────────────────────────
 
@@ -153,7 +153,7 @@ function PerformanceBadge({ p }: { p: Theme["performance"] }) {
 
 function PriorityBadge({ p }: { p: Suggestion["priority"] }) {
   const map = {
-    high: { label: "Do first", cls: "bg-red-50 text-[#FE1B04] border-red-200" },
+    high: { label: "Do first", cls: "bg-red-50 text-[#CC3333] border-red-200" },
     medium: { label: "Next", cls: "bg-gray-50 text-gray-600 border-gray-200" },
     low: { label: "Later", cls: "bg-gray-50 text-gray-400 border-gray-200" },
   }[p];
@@ -205,7 +205,7 @@ function PostRow({ p }: { p: CorpusPost }) {
           <span>{p.likes}L / {p.comments}C / {p.shares}S</span>
           {p.hasMedia && <><span>·</span><span>media</span></>}
           {p.url && (
-            <a href={p.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-[#FE1B04] hover:underline">
+            <a href={p.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-[#CC3333] hover:underline">
               open <ExternalLink size={10} />
             </a>
           )}
@@ -323,7 +323,7 @@ export function ContentIntelligence({ clientId, clientName }: { clientId: string
             key={k}
             onClick={() => setTab(k)}
             className={`px-4 py-1.5 text-xs font-medium transition-colors ${i === 0 ? "border-r border-gray-200" : ""} ${
-              tab === k ? "bg-red-50 text-[#FE1B04]" : "text-gray-500 hover:bg-gray-50"
+              tab === k ? "bg-red-50 text-[#CC3333]" : "text-gray-500 hover:bg-gray-50"
             }`}
           >
             {label}
@@ -461,7 +461,7 @@ export function ContentIntelligence({ clientId, clientName }: { clientId: string
                           <div className="text-[11px] uppercase tracking-wide text-gray-400 font-semibold mb-2">Pillars to own</div>
                           <div className="flex flex-wrap gap-1.5">
                             {result.contentPillars.map((p, i) => (
-                              <span key={i} className="text-xs font-medium px-2 py-1 rounded-lg bg-red-50 text-[#FE1B04] border border-red-100">{p}</span>
+                              <span key={i} className="text-xs font-medium px-2 py-1 rounded-lg bg-red-50 text-[#CC3333] border border-red-100">{p}</span>
                             ))}
                           </div>
                         </div>
