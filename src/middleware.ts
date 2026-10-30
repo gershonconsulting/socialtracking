@@ -14,6 +14,7 @@
  *   - the report routes (/api/report/weekly, /api/report/monthly) ONLY with a
  *     valid schedule key (Bearer CRON_SECRET / DIGEST_SECRET / REPORT_CRON_KEY)
  *     — the weekly + monthly schedules have no user session (v0.3.0)
+ *   - /api/matrix-stats (Client Platform Matrix feed; its secret is SHA-256-checked in the route, v0.5.1)
  *
  * Everything else: signed in + member of the primary workspace, or 401/redirect.
  */
@@ -24,7 +25,8 @@ import { neon } from "@neondatabase/serverless";
 
 /** Pages and API prefixes that do not need a Gershon session. */
 const OPEN_PAGES = ["/login"];
-const OPEN_API = ["/api/auth/", "/api/ping"];
+// v0.5.1: + /api/matrix-stats (Client Platform Matrix feed; SHA-256-checked secret in the route).
+const OPEN_API = ["/api/auth/", "/api/ping", "/api/matrix-stats"];
 /**
  * The Post Verifier Chrome extension (v0.4.0). Its service worker carries no
  * session cookie — it carries the workspace token instead, and EVERY one of
