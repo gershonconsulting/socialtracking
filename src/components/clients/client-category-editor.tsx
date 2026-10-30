@@ -3,13 +3,11 @@ import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Loader2, Check } from "lucide-react";
 
 const CATEGORY_OPTIONS: Array<{ value: string; label: string }> = [
+  // v0.6.0 (Olivier, 2026-10-29): Social Tracking offers Campaign and Internal
+  // only. Client, Prospect, Partner, Competition and Recycled are removed for now
+  // (they stay in Social, which owns the whole ecosystem).
   { value: "CAMPAIGN", label: "Campaign" },
-  { value: "CLIENT", label: "Client" },
-  { value: "PROSPECT", label: "Prospect" },
-  { value: "PARTNER", label: "Partner" },
-  { value: "COMPETITION", label: "Competition" },
   { value: "INTERNAL", label: "Internal" },
-  { value: "RECYCLED", label: "Recycled" },
 ];
 
 const BADGE_STYLES: Record<string, string> = {

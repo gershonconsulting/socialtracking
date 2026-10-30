@@ -41,6 +41,7 @@ chrome.alarms.onAlarm.addListener(async function (alarm) {
   } catch (e) {
     result = { ok: false, totalUpserted: 0, totalFailed: 1, accountCount: 0, badPlatforms: [], ingestErrors: ["background: " + ((e && e.message) || String(e))] };
   }
+  if (result && result.paused) { try { chrome.action.setBadgeText({ text: "OFF" }); } catch (e) {} return; }
   try { chrome.action.setBadgeText({ text: result && result.ok && result.accountCount > 0 ? "✓" : "!" }); } catch (e) {}
   setTimeout(function () { try { chrome.action.setBadgeText({ text: "" }); } catch (e) {} }, 60 * 60 * 1000);
 });
@@ -59,6 +60,11 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
       sendResponse({ ok: false, error: (e && e.message) || String(e) });
     });
     return true;
+  }
+  // 0.2.0: content.js asks for the OFF badge when the page switches this computer off.
+  if (msg && msg.type === "tracking-badge") {
+    try { chrome.action.setBadgeText({ text: String(msg.text || "") }); } catch (e) {}
+    return false;
   }
   if (msg && msg.type === "tracking-verify-client" && msg.clientId) {
     self.runFullSync({ origin: ORIGIN, clientIdFilter: msg.clientId, trigger: "page", onProgress: function () {} })

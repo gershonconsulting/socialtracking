@@ -1,7 +1,10 @@
 "use client";
 
 /**
- * The left menu — v4.9.0 "Charcoal & Signal Red".
+ * The left menu — v0.6.0: the unified Gershon.ai look (Olivier, 2026-10-13:
+ * Linalysis design is the master, Gershon.ai red the main colour): white
+ * 248px rail, red pill on the current page, #e5e7eb borders.
+ * (Was v4.9.0 "Charcoal & Signal Red", inherited from Social.)
  *
  * Dark charcoal rail, grouped sections (Overview · Portfolio · System ·
  * Workspace). Red appears only as the thin marker on the current page, so the
@@ -29,7 +32,7 @@ import {
   Rocket,
   Puzzle,
   Send,
-  BookOpen, ClipboardCheck, FileText} from "lucide-react";
+  BookOpen, ClipboardCheck, FileText, Newspaper} from "lucide-react";
 import { useDemoMode, setDemoMode } from "@/lib/use-demo-mode";
 import { FilterPanel } from "./filter-panel";
 import { cn } from "@/lib/utils";
@@ -47,36 +50,13 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
       { href: "/summary", icon: ClipboardCheck, label: "Summary" },
+      { href: "/onepager", icon: Newspaper, label: "Client one-pagers" },
       { href: "/reports", icon: FileText, label: "Monthly reports" },
       { href: "/clients", icon: Building2, label: "Companies" },
       { href: "/extension", icon: Puzzle, label: "Extension" },
     ],
   },
 ];
-
-/**
- * Whether this workspace still has setup left. Asked once per mount; a failure
- * answers "complete", because a menu entry is not worth an error state.
- */
-function useSetupIncomplete(): boolean {
-  const [incomplete, setIncomplete] = useState(false);
-  useEffect(() => {
-    let live = true;
-    void (async () => {
-      try {
-        const r = await fetch("/api/onboarding");
-        const j = await r.json();
-        if (live && j?.success) setIncomplete(!j.data.complete);
-      } catch {
-        /* leave it hidden */
-      }
-    })();
-    return () => {
-      live = false;
-    };
-  }, []);
-  return incomplete;
-}
 
 function initials(name?: string | null, email?: string | null): string {
   const src = (name || email || "?").replace(/[^A-Za-z ]/g, " ").trim();
@@ -88,26 +68,16 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const role = (session?.user as { role?: string } | undefined)?.role?.toLowerCase() ?? "user";
-  const setupIncomplete = false;
-
-  // "Getting started" earns a place in the menu only while there is still
-  // something to do. A finished workspace shouldn't carry a permanent reminder
-  // of setup it completed months ago.
-  const groups = setupIncomplete
-    ? navGroups.map((g) =>
-        g.label === "Overview"
-          ? { ...g, items: [{ href: "/welcome", icon: Rocket, label: "Getting started" }, ...g.items] }
-          : g,
-      )
-    : navGroups;
+  // v0.6.1: no "Getting started" (/welcome is a Social page, not ours).
+  const groups = navGroups;
 
   return (
-    <aside className="w-[248px] flex-shrink-0 bg-[#111317] text-gray-300 flex flex-col h-screen sticky top-0 border-r border-[#1F2229]">
+    <aside className="w-[248px] flex-shrink-0 bg-white text-gray-700 flex flex-col h-screen sticky top-0 border-r border-[#e5e7eb]">
       {/* Brand */}
-      <div className="px-5 pt-5 pb-4 border-b border-[#1F2229]">
+      <div className="px-5 pt-5 pb-4 border-b border-[#e5e7eb]">
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <SocialMark size={32} className="flex-shrink-0" />
-          <SocialWordmark dark />
+          <SocialWordmark />
         </Link>
       </div>
 
@@ -115,7 +85,7 @@ export function Sidebar() {
       <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-5">
         {groups.map((group) => (
           <div key={group.label} className="space-y-0.5">
-            <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7D838E]">
+            <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">
               {group.label}
             </div>
             {group.items.map((item) => {
@@ -127,15 +97,15 @@ export function Sidebar() {
                     className={cn(
                       "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-[#23262D] text-white shadow-[inset_2px_0_0_#D92D20]"
-                        : "text-[#C9CDD4] hover:bg-[#1A1D23] hover:text-white"
+                        ? "bg-[#CC3333] text-white shadow-sm"
+                        : "text-gray-600 hover:bg-[#fdf2f2] hover:text-[#a8281f]"
                     )}
                   >
                     <item.icon className="flex-shrink-0" size={17} strokeWidth={1.8} />
                     {item.label}
                   </Link>
                   {item.children && isActive && (
-                    <div className="mt-0.5 mb-1 ml-[30px] pl-2.5 border-l border-[#2A2E37] space-y-0.5">
+                    <div className="mt-0.5 mb-1 ml-[30px] pl-2.5 border-l border-[#e5e7eb] space-y-0.5">
                       {item.children.map((sub) => {
                         // A child that shares its parent's href is active on that exact page only.
                         const subActive =
@@ -146,7 +116,7 @@ export function Sidebar() {
                             href={sub.href}
                             className={cn(
                               "block px-2.5 py-1.5 rounded-md text-[13px] font-medium transition-colors",
-                              subActive ? "text-white bg-[#1A1D23]" : "text-[#9BA0AA] hover:text-white"
+                              subActive ? "text-[#a8281f] bg-[#fdf2f2]" : "text-gray-500 hover:text-[#1d1d1f]"
                             )}
                           >
                             {sub.label}
@@ -167,21 +137,21 @@ export function Sidebar() {
       </nav>
 
       {/* User footer */}
-      <div className="px-3 py-3 border-t border-[#1F2229]">
+      <div className="px-3 py-3 border-t border-[#e5e7eb]">
         
         <div className="flex items-center gap-2.5 px-2 py-1.5">
-          <div className="w-8 h-8 rounded-full bg-[#2A2E37] text-white text-xs font-semibold flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-[#fdf2f2] text-[#a8281f] text-xs font-semibold flex items-center justify-center flex-shrink-0">
             {initials(session?.user?.name, session?.user?.email)}
           </div>
           <div className="flex-1 min-w-0 leading-tight">
-            <div className="text-[13px] font-medium text-white truncate">{session?.user?.name}</div>
-            <div className="text-xs text-[#8E949F] truncate capitalize">{role}</div>
+            <div className="text-[13px] font-medium text-[#1d1d1f] truncate">{session?.user?.name}</div>
+            <div className="text-xs text-gray-500 truncate capitalize">{role}</div>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
             aria-label="Sign out"
             title="Sign out"
-            className="w-8 h-8 rounded-md flex items-center justify-center text-[#8E949F] hover:bg-[#1A1D23] hover:text-white transition-colors"
+            className="w-8 h-8 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-[#1d1d1f] transition-colors"
           >
             <LogOut size={16} />
           </button>

@@ -14,7 +14,7 @@
  */
 import { MrPdf, strWidth as W, type RGB } from "./monthly/pdf-writer";
 
-export const RED = "#FE1B04", INK = "#1d1d1f", MUT = "#6e6e73", RULE = "#e5e7eb", TINT = "#fafafa", GOOD = "#057642", WARN = "#b76b00";
+export const RED = "#CC3333", INK = "#1d1d1f", MUT = "#6e6e73", RULE = "#e5e7eb", TINT = "#fafafa", GOOD = "#057642", WARN = "#b76b00";
 
 export interface DTile { label: string; value: string; sub: string; color?: string }
 export interface DBar { label: string; value: string; pct: number; color?: string }

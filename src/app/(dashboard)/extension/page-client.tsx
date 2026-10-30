@@ -15,6 +15,7 @@ import {
   BRIDGE, EXTENSION_FOLDER_NAME, EXTENSION_FOLDER_PATH, EXTENSION_NAME, EXTENSION_ZIP_NAME, EXTENSION_ZIP_URL, versionLt,
 } from "@/lib/extension-version";
 import { BackgroundCollectorCard } from "@/components/extension/background-collector";
+import { ThisComputerCard } from "@/components/extension/this-computer-card";
 
 type Detect = { state: "checking" } | { state: "missing" } | { state: "found"; version: string };
 
@@ -69,14 +70,17 @@ export function ExtensionPageClient({ latest }: { latest: string }) {
         </p>
       </div>
 
+      {/* v0.6.0 — switch the extension ON / OFF on this computer */}
+      <ThisComputerCard />
+
       {/* This browser */}
       <section className="bg-white rounded-xl border border-gray-200 p-5">
         <h2 className="text-sm font-semibold text-gray-900 mb-2">In this browser</h2>
         <div className="flex items-center gap-2 text-sm">
           {detect.state === "checking" && (<><Loader2 size={16} className="animate-spin text-gray-500" /> Checking…</>)}
-          {detect.state === "missing" && (<><XCircle size={16} className="text-[#FE1B04]" /> Not installed in this browser. Latest version: v{latest}.</>)}
+          {detect.state === "missing" && (<><XCircle size={16} className="text-[#CC3333]" /> Not installed in this browser. Latest version: v{latest}.</>)}
           {detect.state === "found" && !old && (<><CheckCircle2 size={16} className="text-green-600" /> Installed, v{detect.version} — up to date.</>)}
-          {detect.state === "found" && old && (<><AlertTriangle size={16} className="text-[#FE1B04]" /> <span className="text-[#FE1B04] font-semibold">Installed v{detect.version} is out of date — latest v{latest}.</span></>)}
+          {detect.state === "found" && old && (<><AlertTriangle size={16} className="text-[#CC3333]" /> <span className="text-[#CC3333] font-semibold">Installed v{detect.version} is out of date — latest v{latest}.</span></>)}
           <button onClick={check} className="ml-2 text-xs font-medium text-gray-500 hover:text-gray-900 underline">Check again</button>
         </div>
       </section>
@@ -93,7 +97,7 @@ export function ExtensionPageClient({ latest }: { latest: string }) {
             <li>Open socialtracking.gershon.ai once, signed in: the extension connects itself to the workspace.</li>
           </ol>
           <a href={EXTENSION_ZIP_URL} download={EXTENSION_ZIP_NAME}
-            className="mt-4 self-start inline-flex items-center gap-2 rounded-lg bg-[#FE1B04] text-white text-sm font-semibold px-4 py-2">
+            className="mt-4 self-start inline-flex items-center gap-2 rounded-lg bg-[#CC3333] text-white text-sm font-semibold px-4 py-2">
             <Download size={16} /> Download v{latest}
           </a>
         </section>

@@ -77,6 +77,23 @@ for (let i = 0; i < 40; i++) { const j = await R.requestCollection(org.id, null,
 st = await R.queueStatus(org.id, db);
 ok(st.jobs.length === 30, "kept the last 30 jobs (" + st.jobs.length + ")");
 
+console.log("8b. v0.6.0 — a computer switched OFF never gets a job");
+await R.setAgentPaused(org.id, "agentOff", true, db);
+const jOff = await R.requestCollection(org.id, c1.id, db);
+let r8 = await R.claimNextWithState(org.id, { id: "agentOff", label: "Chrome on Windows", version: "0.2.0" }, db);
+ok(r8.job === null && r8.paused === true, "paused install: no job, told it is paused");
+st = await R.queueStatus(org.id, db);
+const offRow = st.agents.find((a: any) => a.id === "agentOff");
+ok(offRow && offRow.paused === true && offRow.live === true, "paused install still listed (live, OFF)");
+ok(st.listening === st.agents.filter((a: any) => a.live && !a.paused).length, "listening counts only ON installs");
+ok(st.jobs.find((j: any) => j.id === jOff.id).status === "queued", "the job waits for an ON computer");
+r8 = await R.claimNextWithState(org.id, { id: "agentOn2", label: "Chrome on Mac", version: "0.2.0" }, db);
+ok(r8.job && r8.job.id === jOff.id && r8.paused === false, "an ON computer takes it");
+await R.setAgentPaused(org.id, "agentOff", false, db);
+r8 = await R.claimNextWithState(org.id, { id: "agentOff", label: "Chrome on Windows", version: "0.2.0" }, db);
+ok(r8.paused === false, "switched back ON");
+ok(R.setPaused({ jobs: [], agents: {}, paused: ["a"] }, "a", true) === false, "switching OFF twice changes nothing");
+
 console.log("9. Social's queue untouched");
 ok((await db.orgSetting.findFirst({ where: { organizationId: org.id, key: "collect_queue" } })).value === "{\"jobs\":[],\"agents\":{}}", "collect_queue (Social) unchanged");
 

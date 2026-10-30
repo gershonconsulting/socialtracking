@@ -24,7 +24,8 @@ import { useEffect, useState } from "react";
  * account-level problem: a stale capture still shows, it is simply worded to
  * point at the collecting computer instead of at this browser.
  */
-export const COLLECT_KEY = "social_collecting";
+// v0.6.0: Social Tracking's own key (it was still Social's "social_collecting").
+export const COLLECT_KEY = "socialtracking_collecting";
 
 export function readCollecting(): boolean {
   try {
@@ -41,7 +42,7 @@ export function writeCollecting(on: boolean): void {
     /* private mode — the setting just doesn't stick, default (on) applies */
   }
   try {
-    window.dispatchEvent(new CustomEvent("social-collecting-changed", { detail: { on } }));
+    window.dispatchEvent(new CustomEvent("socialtracking-collecting-changed", { detail: { on } }));
   } catch {
     /* older browsers — every consumer re-reads on mount anyway */
   }
@@ -61,11 +62,11 @@ export function useCollectingMode(): [boolean, (on: boolean) => void] {
   useEffect(() => {
     setCollecting(readCollecting());
     const onChange = () => setCollecting(readCollecting());
-    window.addEventListener("social-collecting-changed", onChange);
+    window.addEventListener("socialtracking-collecting-changed", onChange);
     // Another tab on this same computer changed it.
     window.addEventListener("storage", onChange);
     return () => {
-      window.removeEventListener("social-collecting-changed", onChange);
+      window.removeEventListener("socialtracking-collecting-changed", onChange);
       window.removeEventListener("storage", onChange);
     };
   }, []);

@@ -28,7 +28,7 @@ export function CollectionHealthBanner() {
     month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
   });
   return (
-    <div className="bg-[#FE1B04] text-white rounded-xl px-4 py-3 mb-5 flex items-start gap-3">
+    <div className="bg-[#CC3333] text-white rounded-xl px-4 py-3 mb-5 flex items-start gap-3">
       <AlertOctagon size={18} className="shrink-0 mt-0.5" />
       <div className="text-sm">
         <strong>LinkedIn collection is not working.</strong>{" "}

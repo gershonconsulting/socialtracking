@@ -39,7 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <ViewFiltersProvider>
       <ApiRetry />
-      <div className="flex h-screen overflow-hidden bg-[#F5F4F0]">
+      <div className="flex h-screen overflow-hidden bg-[#F7F7F8]">
         <Sidebar />
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-[1400px] mx-auto px-9 pt-7 pb-10">

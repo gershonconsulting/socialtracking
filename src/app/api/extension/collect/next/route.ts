@@ -9,7 +9,7 @@ export const runtime = "edge";
  */
 import { NextRequest, NextResponse } from "next/server";
 import { resolveExtensionCaller } from "@/lib/extension-auth";
-import { claimNext } from "@/lib/remote-collect";
+import { claimNextWithState } from "@/lib/remote-collect";
 
 export async function GET(req: NextRequest) {
   const caller = await resolveExtensionCaller(req);
@@ -25,10 +25,10 @@ export async function GET(req: NextRequest) {
     label: (p.get("label") || "Chrome").slice(0, 60),
   };
   try {
-    const job = await claimNext(caller.orgId, agent);
+    const { job, paused } = await claimNextWithState(caller.orgId, agent);
     return NextResponse.json({
       success: true,
-      data: { job: job ? { id: job.id, clientId: job.clientId, clientName: job.clientName } : null },
+      data: { job: job ? { id: job.id, clientId: job.clientId, clientName: job.clientName } : null, paused },
     });
   } catch (e) {
     return NextResponse.json({ success: false, error: e instanceof Error ? e.message : "failed" }, { status: 500 });

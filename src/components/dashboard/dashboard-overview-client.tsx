@@ -48,7 +48,7 @@ const NET = ["LinkedIn", "X"];
 const NET_KEY = ["LINKEDIN", "TWITTER"];
 const C_LI = "#0A66C2";
 const C_X = "#15171C";
-const C_TARGET = "#D92D20";
+const C_TARGET = "#CC3333";
 
 /* ───────── dates ───────── */
 const DAY = 86400000;
@@ -141,7 +141,7 @@ const maxS = (a: string, b: string) => (a > b ? a : b);
 const minS = (a: string, b: string) => (a < b ? a : b);
 const monthLabel = (mk: string, long = false) =>
   toD(`${mk}-01`).toLocaleDateString("en-US", { month: long ? "long" : "short", year: long ? undefined : "2-digit", timeZone: "UTC" });
-const pctTone = (p: number) => (p >= 0.9 ? "#2E7D4F" : p >= 0.6 ? "#F59E0B" : "#D92D20");
+const pctTone = (p: number) => (p >= 0.9 ? "#2E7D4F" : p >= 0.6 ? "#F59E0B" : "#CC3333");
 
 interface Cover { days: number; li: number; x: number; due: number }
 
@@ -419,7 +419,7 @@ export function DashboardOverviewClient({ data }: { data: DashData }) {
           n={4}
           q="Getting more efficient?"
           value={eff.eppChange === null ? "—" : `${eff.eppChange >= 0 ? "+" : ""}${Math.round(eff.eppChange * 100)}%`}
-          tone={eff.eppChange === null ? undefined : eff.eppChange >= 0 ? "#2E7D4F" : "#D92D20"}
+          tone={eff.eppChange === null ? undefined : eff.eppChange >= 0 ? "#2E7D4F" : "#CC3333"}
           unit="engagement / post since start"
           line={eff.measured
             ? <>Last 3 months vs first 3 months of each campaign ({eff.measured} of {companies.length} companies)</>
@@ -920,8 +920,8 @@ function Spark({ values, bars }: { values: number[]; bars?: boolean }) {
   const d = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("");
   return (
     <svg width={W} height={H} className="block shrink-0" aria-hidden>
-      <path d={`${d}L${W},${H}L0,${H}Z`} fill="#D92D20" opacity={0.08} />
-      <path d={d} fill="none" stroke="#D92D20" strokeWidth={1.75} strokeLinejoin="round" />
+      <path d={`${d}L${W},${H}L0,${H}Z`} fill="#CC3333" opacity={0.08} />
+      <path d={d} fill="none" stroke="#CC3333" strokeWidth={1.75} strokeLinejoin="round" />
     </svg>
   );
 }

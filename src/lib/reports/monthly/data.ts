@@ -136,6 +136,8 @@ function shapeCompany(win: MonthWindow, c: { id: string; name: string }, posts: 
     perDay, perDayLi,
     prev: { posts: prev.length, eng: prev.reduce((s, p) => s + engOf(p), 0), days: new Set(prev.map((p) => p.publishedDateLocal)).size },
     objective, top, themes: themesOf(posts), bestWeekday, learn,
+    // v0.8.0: every post of the month, oldest first — the client one-pager lists them all.
+    all: posts.slice().sort((a, b) => a.publishedDateLocal.localeCompare(b.publishedDateLocal)).map(toPost),
   };
 }
 

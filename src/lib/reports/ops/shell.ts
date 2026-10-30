@@ -21,7 +21,7 @@ import { APP_VERSION } from "@/lib/extension-version";
 import { BUSINESS_TZ } from "../et-days";
 import { withAuditBcc } from "@/lib/mail-bcc";
 
-export const RED = "#FE1B04";
+export const RED = "#CC3333";
 export const GREEN = "#047857";
 export const AMBER = "#b45309";
 export const DARK_RED = "#b91c1c";

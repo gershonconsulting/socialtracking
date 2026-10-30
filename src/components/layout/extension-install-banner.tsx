@@ -10,38 +10,31 @@
  * TRACKING_PONG {version} to a TRACKING_PING. Social's GERSHONAI_* messages
  * are ignored on purpose — Social's extension is a different product.
  */
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertOctagon, Download, Info } from "lucide-react";
-import { BRIDGE, EXTENSION_ZIP_URL, EXTENSION_ZIP_NAME, versionLt } from "@/lib/extension-version";
-
-type State = { kind: "checking" } | { kind: "missing" } | { kind: "found"; version: string };
+import { EXTENSION_ZIP_URL, EXTENSION_ZIP_NAME, versionLt } from "@/lib/extension-version";
+import { useTrackingExtension } from "@/lib/use-tracking-extension";
+import { useCollectingMode } from "@/lib/collecting-mode";
 
 export { versionLt };
 
+/**
+ * v0.6.0 — "This computer" ON/OFF (/extension):
+ *   - a computer switched to VIEWER (no extension wanted here) gets no notice;
+ *   - an installed extension switched OFF on this computer gets no update alarm
+ *     either: it is not verifying here, so its version does not matter today.
+ */
 export function ExtensionInstallBanner({ latest }: { latest: string }) {
-  const [state, setState] = useState<State>({ kind: "checking" });
-
-  useEffect(() => {
-    const pingId = `banner-${Date.now()}`;
-    let found = false;
-    const onMsg = (e: MessageEvent) => {
-      if (e.source !== window || e.origin !== location.origin) return;
-      const d = e.data as { type?: string; version?: string; requestId?: string };
-      if (!d || typeof d !== "object") return;
-      if (d.type === BRIDGE.HELLO || (d.type === BRIDGE.PONG && d.requestId === pingId)) {
-        found = true;
-        setState({ kind: "found", version: String(d.version || "0") });
-      }
-    };
-    window.addEventListener("message", onMsg);
-    window.postMessage({ type: BRIDGE.PING, requestId: pingId }, location.origin);
-    const t = setTimeout(() => { if (!found) setState({ kind: "missing" }); }, 2000);
-    return () => { clearTimeout(t); window.removeEventListener("message", onMsg); };
-  }, []);
+  const [ext] = useTrackingExtension(2000);
+  const [collecting] = useCollectingMode();
+  const state =
+    ext.state === "checking" ? { kind: "checking" as const }
+    : ext.state === "missing" ? { kind: "missing" as const }
+    : { kind: "found" as const, version: ext.version, paused: ext.paused };
 
   if (state.kind === "checking") return null;
-  if (state.kind === "found" && !versionLt(state.version, latest)) return null;
+  if (!collecting) return null;
+  if (state.kind === "found" && (state.paused || !versionLt(state.version, latest))) return null;
 
   if (state.kind === "missing") {
     // Not installed in THIS browser: a notice, not an alarm — another Chrome
@@ -53,6 +46,8 @@ export function ExtensionInstallBanner({ latest }: { latest: string }) {
           <strong>The Social Tracking extension (Post Verifier) is not installed in this browser.</strong>{" "}
           It is what checks the LinkedIn and X pages of our companies for the monthly evidence.{" "}
           <Link href="/extension" className="underline font-semibold">See which Chromes are verifying</Link>
+          {" · "}
+          <Link href="/extension#this-computer" className="underline font-semibold">This computer doesn&apos;t verify? Switch it OFF</Link>
         </div>
         <a href={EXTENSION_ZIP_URL} download={EXTENSION_ZIP_NAME}
           className="shrink-0 inline-flex items-center gap-2 bg-white border border-amber-300 text-amber-900 text-sm font-semibold rounded-lg px-3 py-1.5">
@@ -63,7 +58,7 @@ export function ExtensionInstallBanner({ latest }: { latest: string }) {
   }
 
   return (
-    <div className="bg-[#FE1B04] text-white rounded-xl px-4 py-3 mb-5 flex items-center gap-3">
+    <div className="bg-[#CC3333] text-white rounded-xl px-4 py-3 mb-5 flex items-center gap-3">
       <AlertOctagon size={18} className="shrink-0" />
       <div className="flex-1 text-sm">
         <strong>Your Social Tracking extension is out of date (v{state.version}, latest v{latest}).</strong>{" "}
@@ -71,7 +66,7 @@ export function ExtensionInstallBanner({ latest }: { latest: string }) {
         <Link href="/extension" className="underline font-semibold">How to update</Link>
       </div>
       <a href={EXTENSION_ZIP_URL} download={EXTENSION_ZIP_NAME}
-        className="shrink-0 inline-flex items-center gap-2 bg-white text-[#FE1B04] text-sm font-semibold rounded-lg px-3 py-1.5">
+        className="shrink-0 inline-flex items-center gap-2 bg-white text-[#CC3333] text-sm font-semibold rounded-lg px-3 py-1.5">
         <Download size={15} /> Download v{latest}
       </a>
     </div>

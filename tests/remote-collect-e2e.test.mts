@@ -28,8 +28,8 @@ const srv = http.createServer(async (req, res) => {
   if (u.pathname.startsWith("/api/extension/collect/")) {
     if (!row) return send(401, { success: false });
     if (u.pathname.endsWith("/next")) {
-      const job = await RC.claimNext(row.organizationId, { id: u.searchParams.get("agent"), version: u.searchParams.get("v"), label: u.searchParams.get("label") }, db);
-      return send(200, { success: true, data: { job: job ? { id: job.id, clientId: job.clientId } : null } });
+      const { job, paused } = await RC.claimNextWithState(row.organizationId, { id: u.searchParams.get("agent"), version: u.searchParams.get("v"), label: u.searchParams.get("label") }, db);
+      return send(200, { success: true, data: { job: job ? { id: job.id, clientId: job.clientId } : null, paused } });
     }
     if (u.pathname.endsWith("/result")) {
       let b = ""; for await (const c of req) b += c; const j = JSON.parse(b);
@@ -140,6 +140,17 @@ const n2: any[] = []; const H = loadExtension({ trk_workspaceToken: "wt_wrong" }
 await RC.requestCollection(org.id, cyt.id, db);
 await H.chrome.alarms._fire("tracking-remote-tick");
 ok(n2.length === 0 && (await RC.queueStatus(org.id, db)).jobs[0].status === "queued", "unknown token gets nothing");
+
+console.log("9b. v0.6.0 — this computer switched OFF: told so, runs nothing, back ON runs again");
+await RC.requestCollection(org.id, cyt.id, db); // still waiting from step 9 — reused
+const offStore: Record<string, any> = { trk_workspaceToken: "wt_test", trk_agentId: "ag_offtest" };
+const nOff: any[] = []; const K = loadExtension(offStore, async (o: any) => { nOff.push(o); return { ok: true }; });
+await RC.setAgentPaused(org.id, "ag_offtest", true, db);
+await K.chrome.alarms._fire("tracking-remote-tick");
+ok(nOff.length === 0 && offStore.trk_paused === true, "OFF: no run, extension stores trk_paused");
+await RC.setAgentPaused(org.id, "ag_offtest", false, db);
+await K.chrome.alarms._fire("tracking-remote-tick");
+ok(offStore.trk_paused === false && nOff.length === 1, "back ON: flag cleared and the waiting job runs");
 
 console.log("10. only ever talks to socialtracking.gershon.ai");
 ok(badOrigins.length === 0, "no call to Social or any other origin (" + badOrigins.join(", ") + ")");

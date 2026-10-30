@@ -96,7 +96,7 @@ const WINDOWS = [
   { value: 3650, label: "All time" },
 ];
 
-const RED = "#FE1B04";
+const RED = "#CC3333";
 
 // ─── Building blocks ─────────────────────────────────────────────────────────
 
@@ -177,7 +177,7 @@ function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) 
 
 function TagPill({ pick, tone }: { pick: HashtagPick; tone: "core" | "rotating" | "drop" }) {
   const style = {
-    core: "bg-red-50 text-[#FE1B04] border-red-200",
+    core: "bg-red-50 text-[#CC3333] border-red-200",
     rotating: "bg-gray-50 text-gray-700 border-gray-200",
     drop: "bg-gray-50 text-gray-400 border-gray-200 line-through",
   }[tone];
@@ -407,7 +407,7 @@ export function PostStudio({ clientId, clientName }: { clientId: string; clientN
                 <div className="text-sm font-semibold text-amber-900">AI is not configured</div>
                 <div className="text-xs text-amber-800 mt-0.5">
                   Add an Anthropic API key in{" "}
-                  <a href="/settings" className="underline font-medium">
+                  <a href="https://social.gershon.ai/settings" target="_blank" rel="noreferrer" className="underline font-medium">
                     Settings → Content Intelligence (AI)
                   </a>
                   . Post Studio uses the same key.

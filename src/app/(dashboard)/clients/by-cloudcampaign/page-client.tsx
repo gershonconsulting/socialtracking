@@ -90,7 +90,7 @@ function TabBtn({ on, onClick, children }: { on: boolean; onClick: () => void; c
       onClick={onClick}
       className={
         "px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors " +
-        (on ? "border-[#FE1B04] text-[#FE1B04]" : "border-transparent text-gray-500 hover:text-gray-800")
+        (on ? "border-[#CC3333] text-[#CC3333]" : "border-transparent text-gray-500 hover:text-gray-800")
       }
     >
       {children}
@@ -249,7 +249,7 @@ function ClientsTab() {
           <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden">
             {METRICS.map((mm) => (
               <button key={mm.k} onClick={() => setMetric(mm)}
-                className={"px-3 py-1.5 text-xs font-medium " + (metric.k === mm.k ? "bg-[#FE1B04] text-white" : "bg-gray-50 text-gray-500 hover:text-gray-800")}>
+                className={"px-3 py-1.5 text-xs font-medium " + (metric.k === mm.k ? "bg-[#CC3333] text-white" : "bg-gray-50 text-gray-500 hover:text-gray-800")}>
                 {mm.label}
               </button>
             ))}

@@ -20,10 +20,11 @@
 
 import { ClientFrames } from "@/components/ui/client-frames";
 import { useMemo, useState } from "react";
+import { matchesCategory, useViewFilters } from "@/lib/view-filters";
 import Link from "next/link";
 import {
   CheckCircle2, XCircle, ArrowUpRight, ArrowDownRight, Minus, AlertTriangle, Clock,
-  Heart, MessageCircle, Repeat2, Eye, ExternalLink, HelpCircle,
+  Heart, MessageCircle, Repeat2, Eye, ExternalLink, HelpCircle, Newspaper,
 } from "lucide-react";
 import type { TrackingDashData } from "./dashboard-data";
 import type { BookCompany } from "@/lib/tracking/book";
@@ -43,7 +44,7 @@ const WINDOWS: { key: W; label: string }[] = [
 
 const C_LI = "#0A66C2";
 const C_X = "#15171C";
-const C_TARGET = "#D92D20";
+const C_TARGET = "#CC3333";
 const C_UNKNOWN = "#D4D0C7";
 const PUBLISH = "https://publish.gershon.ai";
 
@@ -101,7 +102,7 @@ function relTime(iso: string | null): string {
 const shortDate = (s: string) => toD(s).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 const monthLabel = (mk: string, long = false) =>
   toD(`${mk}-01`).toLocaleDateString("en-US", { month: long ? "long" : "short", year: long ? undefined : "2-digit", timeZone: "UTC" });
-const pctTone = (p: number) => (p >= 0.9 ? "#2E7D4F" : p >= 0.6 ? "#F59E0B" : "#D92D20");
+const pctTone = (p: number) => (p >= 0.9 ? "#2E7D4F" : p >= 0.6 ? "#F59E0B" : "#CC3333");
 const pct = (p: number | null) => (p === null ? "n/a" : `${Math.round(p * 100)}%`);
 
 type DayState = "verified" | "missing" | "unknown" | "pending" | "off";
@@ -129,7 +130,37 @@ const sumAtt = (a: Attainment[]) => {
   return { ...s, rate: s.due ? s.verified / s.due : null, provisional: s.unknown > 0 } as Attainment;
 };
 
+/**
+ * v0.5.1 (Olivier, 2026-10-28): the dashboard is about our CURRENT CAMPAIGNS.
+ * Internal companies only appear when the user ticks "Internal" in the
+ * left-menu filter (default selection = Campaign). Rows are re-indexed so
+ * every section below only sees the selected companies.
+ */
 export function TrackingDashboardClient({ data }: { data: TrackingDashData }) {
+  const { categories, ready } = useViewFilters();
+  const view = useMemo(() => {
+    const keep = data.companies
+      .map((co, i) => ({ co, i }))
+      .filter(({ co }) => (ready ? matchesCategory(co.clientType, categories) : co.clientType === "CAMPAIGN"));
+    const remap = new Map(keep.map(({ i }, j) => [i, j]));
+    const re = <T extends unknown[]>(rows: T[]) =>
+      rows.filter((r) => remap.has(r[0] as number)).map((r) => { const c = [...r] as T; c[0] = remap.get(r[0] as number); return c; });
+    return {
+      ...data,
+      companies: keep.map(({ co }) => co),
+      followers: keep.map(({ i }) => data.followers[i]),
+      runway: keep.map(({ i }) => data.runway[i]),
+      days: re(data.days),
+      months: re(data.months),
+      stock: re(data.stock),
+      top: data.top.filter((t) => remap.has(t.c)).map((t) => ({ ...t, c: remap.get(t.c)! })),
+    } as TrackingDashData;
+  }, [data, categories, ready]);
+  const key = view.companies.map((c) => c.id).join(",");
+  return <TrackingDashboardView key={key} data={view} />;
+}
+
+function TrackingDashboardView({ data }: { data: TrackingDashData }) {
   const [w, setW] = useState<W>("tm");
   const { companies, today } = data;
   const mk = monthKey(today);
@@ -315,32 +346,56 @@ export function TrackingDashboardClient({ data }: { data: TrackingDashData }) {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="text-[13px] font-medium text-red-700 mb-1">Social Tracking · campaign command center · was the agreed work done?</div>
-          <h1 className="text-[26px] leading-tight font-semibold tracking-tight text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-600 mt-1 flex flex-wrap items-center gap-x-1.5">
-            <span>{nCampaign} campaign + {companies.length - nCampaign} internal companies · {shortDate(bf)} – {shortDate(bt)}</span>
-            <span>·</span>
-            <span className={staleCount ? "text-red-700 font-medium" : ""}>
-              evidence: last read {relTime(lastRead)}{staleCount ? ` · ${staleCount} stale` : " · all fresh"}
-            </span>
-          </p>
+      {/* v0.6.0 — hero: the one answer that matters, with the window picker and the one-pager */}
+      <section className="relative overflow-hidden rounded-2xl text-white shadow-[0_10px_40px_rgba(168,40,31,0.25)]"
+        style={{ background: "linear-gradient(120deg, #CC3333 0%, #a8281f 60%, #6f1a14 100%)" }}>
+        <svg className="absolute right-0 top-0 h-full opacity-[0.10] pointer-events-none" viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" aria-hidden>
+          {Array.from({ length: 9 }, (_, i) => <circle key={i} cx={400} cy={100} r={30 + i * 34} fill="none" stroke="#fff" strokeWidth="1.5" />)}
+        </svg>
+        <div className="relative p-6 lg:p-7">
+          <div className="flex flex-wrap items-center gap-6 lg:gap-8">
+            <HeroRing rate={tot.rate} provisional={tot.provisional} />
+            <div className="flex-1 min-w-[260px]">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75">Social Tracking · was the agreed work done?</div>
+              <h1 className="mt-1 text-[28px] leading-tight font-bold tracking-tight">
+                {tot.rate === null ? "Nothing due yet" : `${tot.verified} of ${tot.due} posting days delivered`}
+              </h1>
+              <p className="mt-1.5 text-sm text-white/85">
+                {windowLabel} · {shortDate(bf)} – {shortDate(bt)} · {nCampaign} campaign{companies.length - nCampaign ? ` + ${companies.length - nCampaign} internal` : ""} compan{companies.length === 1 ? "y" : "ies"}
+                {prevPct !== null && tot.rate !== null ? <> · <b>{totPct >= prevPct ? "▲" : "▼"} {Math.abs(Math.round((totPct - prevPct) * 100))} pts</b> vs {range.prevLabel}</> : null}
+              </p>
+              <p className={"mt-1 text-[12px] " + (staleCount ? "text-white font-semibold" : "text-white/70")}>
+                Evidence: last read {relTime(lastRead)}{staleCount ? ` · ${staleCount} stale` : " · all fresh"}
+              </p>
+            </div>
+            <div className="flex flex-col items-stretch gap-2.5 w-full sm:w-auto">
+              <div className="inline-flex max-w-full overflow-x-auto rounded-lg bg-white/15 p-0.5 ring-1 ring-white/20">
+                {WINDOWS.map((o) => (
+                  <button key={o.key} type="button" onClick={() => setW(o.key)}
+                    className={"px-3 h-8 whitespace-nowrap text-[13px] font-semibold rounded-md transition-colors " +
+                      (w === o.key ? "bg-white text-[#a8281f]" : "text-white/85 hover:text-white hover:bg-white/10")}>
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+              <Link href={`/onepager?month=${addMonths(mk, -1)}`}
+                className="inline-flex items-center justify-center gap-2 h-10 rounded-lg bg-white text-[#a8281f] text-sm font-bold px-4 hover:bg-[#fdf2f2]">
+                <Newspaper size={16} /> {monthLabel(addMonths(mk, -1), true)} client one-pagers
+              </Link>
+            </div>
+          </div>
+          <div className="mt-5 grid grid-cols-2 lg:grid-cols-5 gap-2.5">
+            <HeroStat label="Posts" value={fmt(perf.tot.posts)} sub={hasPrev && perf.totPrev.posts ? `${perf.tot.posts >= perf.totPrev.posts ? "+" : ""}${Math.round(((perf.tot.posts - perf.totPrev.posts) / perf.totPrev.posts) * 100)}% vs ${range.prevLabel}` : "LinkedIn + X"} />
+            <HeroStat label="Engagements" value={fmt(perf.tot.eng)} sub={perf.tot.posts ? `${epp.toFixed(1)} per post` : "likes + comments + reposts"} />
+            <HeroStat label="Missing days" value={String(tot.missing)} sub={tot.unknown ? `${tot.unknown} not verifiable yet` : "every due day verified"} warn={tot.missing > 0} />
+            <HeroStat label="Needs attention" value={String(attention.length)} sub={attention.length ? "see the list below" : "nothing to do"} warn={attention.length > 0} />
+            <HeroStat label={`Stock ${monthLabel(nextMk, true)}`} value={`${Math.round(stock.nextPct * 100)}%`} sub={`${stock.nextReadyTot} weekdays ready`} warn={stock.nextPct < 0.5} />
+          </div>
         </div>
-        <div className="inline-flex max-w-full overflow-x-auto rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm">
-          {WINDOWS.map((o) => (
-            <button key={o.key} type="button" onClick={() => setW(o.key)}
-              className={"px-3 h-8 whitespace-nowrap text-[13px] font-medium rounded-md transition-colors " +
-                (w === o.key ? "bg-red-600 text-white" : "text-gray-600 hover:text-gray-900 hover:bg-gray-50")}>
-              {o.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      </section>
 
       {companies.length === 0 && (
-        <div className="gx-card p-6 text-sm text-gray-600">No active campaign or internal company yet — nothing to track.</div>
+        <div className="gx-card p-6 text-sm text-gray-600">No active company in the selected categories — nothing to track.</div>
       )}
 
       {/* v0.5.0 — one framed card per client: Green ≥ 100% of objective, Orange 50–99%, Red < 50% */}
@@ -357,6 +412,9 @@ export function TrackingDashboardClient({ data }: { data: TrackingDashData }) {
           };
         })}
       />
+
+      {/* v0.6.0 — who posted when, last 4 weeks at a glance */}
+      {companies.length > 0 && <PostingCalendar companies={companies} today={today} />}
 
       {/* The four answers */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -394,7 +452,7 @@ export function TrackingDashboardClient({ data }: { data: TrackingDashData }) {
           n={4}
           q="Getting more efficient?"
           value={eff.eppChange === null ? "—" : `${eff.eppChange >= 0 ? "+" : ""}${Math.round(eff.eppChange * 100)}%`}
-          tone={eff.eppChange === null ? undefined : eff.eppChange >= 0 ? "#2E7D4F" : "#D92D20"}
+          tone={eff.eppChange === null ? undefined : eff.eppChange >= 0 ? "#2E7D4F" : "#CC3333"}
           unit="engagement / post since start"
           line={eff.measured
             ? <>Last 3 months vs first 3 months of each campaign ({eff.measured} of {companies.length} companies)</>
@@ -937,8 +995,8 @@ function Spark({ values }: { values: number[] }) {
   const d = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("");
   return (
     <svg width={W} height={H} className="block shrink-0" aria-hidden>
-      <path d={`${d}L${W},${H}L0,${H}Z`} fill="#D92D20" opacity={0.08} />
-      <path d={d} fill="none" stroke="#D92D20" strokeWidth={1.75} strokeLinejoin="round" />
+      <path d={`${d}L${W},${H}L0,${H}Z`} fill="#CC3333" opacity={0.08} />
+      <path d={d} fill="none" stroke="#CC3333" strokeWidth={1.75} strokeLinejoin="round" />
     </svg>
   );
 }
@@ -966,5 +1024,99 @@ function Pipeline({ p }: { p: TrackingDashData["pipeline"] }) {
       ))}
       {p.failed > 0 && <div className="text-xs font-medium text-red-700 pt-1">{p.failed} failed / missed delivery attempts in the last 30 days (diagnostic — not counted as misses)</div>}
     </div>
+  );
+}
+
+/* ── v0.6.0 hero + posting calendar ───────────────────────────────── */
+
+function HeroRing({ rate, provisional }: { rate: number | null; provisional: boolean }) {
+  const r = 52, c = 2 * Math.PI * r;
+  const v = rate === null ? 0 : Math.min(1, rate);
+  return (
+    <div className="relative shrink-0 w-[150px] h-[150px]">
+      <svg viewBox="0 0 130 130" className="w-full h-full -rotate-90" aria-hidden>
+        <circle cx="65" cy="65" r={r} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="12" />
+        <circle cx="65" cy="65" r={r} fill="none" stroke="#fff" strokeWidth="12" strokeLinecap="round" strokeDasharray={`${c * v} ${c}`} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+        <div className="text-[32px] font-bold leading-none tabular-nums">{rate === null ? "—" : `${Math.round(rate * 100)}%`}</div>
+        <div className="mt-1 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-white/80">of objective</div>
+        {provisional && <div className="text-[9.5px] text-white/70">provisional</div>}
+      </div>
+    </div>
+  );
+}
+
+function HeroStat({ label, value, sub, warn }: { label: string; value: string; sub?: string; warn?: boolean }) {
+  return (
+    <div className={"rounded-xl px-3.5 py-2.5 ring-1 " + (warn ? "bg-white/20 ring-white/40" : "bg-white/10 ring-white/15")}>
+      <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/70">{label}</div>
+      <div className="text-[22px] font-bold leading-tight tabular-nums">{value}</div>
+      {sub && <div className="text-[11px] text-white/75">{sub}</div>}
+    </div>
+  );
+}
+
+/** Last 20 weekdays × company: LinkedIn / X / both / no post / not verifiable / not due. */
+function PostingCalendar({ companies, today }: { companies: BookCompany[]; today: string }) {
+  const days: string[] = [];
+  for (let d = addDays(today, -1); days.length < 20; d = addDays(d, -1)) if (isWeekday(d)) days.unshift(d);
+  const weekStart = (d: string) => (toD(d).getUTCDay() === 1);
+  const rows = companies
+    .map((co) => {
+      const states = days.map((d) => dayState(co, d, today));
+      const v = states.filter((x) => x === "verified").length;
+      const due = states.filter((x) => x === "verified" || x === "missing" || x === "unknown").length;
+      return { co, states, v, due };
+    })
+    .sort((a, b) => (a.due ? a.v / a.due : 2) - (b.due ? b.v / b.due : 2) || a.co.name.localeCompare(b.co.name));
+  return (
+    <section className="gx-card overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-[15px] font-semibold text-gray-900">Who posted when — last 4 weeks</h2>
+          <p className="text-xs text-gray-500 mt-0.5">One square per weekday · furthest behind first · hover a square for the day</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
+          <Legend c={C_LI} t="LinkedIn" /><Legend c={C_X} t="X" />
+          <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: `linear-gradient(135deg, ${C_LI} 50%, ${C_X} 50%)` }} />Both</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#fdf2f2] border border-[#CC3333]" />No post</span>
+          <Legend c={C_UNKNOWN} t="Not verifiable yet" /><Legend c="#F3F4F6" t="Not due" />
+        </div>
+      </div>
+      <div className="px-5 py-3 overflow-x-auto">
+        <div className="min-w-[760px]">
+          <div className="grid items-end gap-x-3" style={{ gridTemplateColumns: "210px 1fr 64px" }}>
+            <span />
+            <div className="grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}>
+              {days.map((d) => (
+                <span key={d} className={"text-[10px] text-center " + (weekStart(d) ? "text-gray-700 font-semibold" : "text-gray-400")}>
+                  {weekStart(d) || d === days[0] ? shortDate(d) : toD(d).getUTCDate()}
+                </span>
+              ))}
+            </div>
+            <span />
+          </div>
+          {rows.map(({ co, states, v, due }) => (
+            <Link key={co.id} href={`/clients/${co.id}`} className="grid items-center gap-x-3 py-1.5 border-t border-gray-50 hover:bg-gray-50 rounded" style={{ gridTemplateColumns: "210px 1fr 64px" }}>
+              <span className="flex items-center gap-2 min-w-0"><Logo co={co} /><span className="text-[13px] font-medium text-gray-900 truncate">{co.name}</span></span>
+              <div className="grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}>
+                {days.map((d, k) => {
+                  const st = states[k];
+                  const f = co.posted[d] ?? 0;
+                  let bg = "#F3F4F6", border = "transparent";
+                  if (st === "verified") bg = f === 3 ? `linear-gradient(135deg, ${C_LI} 50%, ${C_X} 50%)` : f === 2 ? C_X : C_LI;
+                  else if (st === "missing") { bg = "#fdf2f2"; border = "#CC3333"; }
+                  else if (st === "unknown") bg = C_UNKNOWN;
+                  const tip = `${shortDate(d)} · ${st === "verified" ? `posted on ${f === 3 ? "LinkedIn and X" : f === 2 ? "X" : "LinkedIn"}` : st === "missing" ? "no post" : st === "unknown" ? "not verifiable yet" : "not due"}`;
+                  return <span key={d} title={tip} className="block h-[18px] rounded-[4px]" style={{ background: bg, border: `1px solid ${border}` }} />;
+                })}
+              </div>
+              <span className="text-right text-xs gx-num font-semibold" style={{ color: due ? pctTone(v / due) : "#9CA3AF" }}>{due ? `${v}/${due}` : "—"}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }

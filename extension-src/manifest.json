@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Social Tracking by Gershon.AI — Post Verifier",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Checks the LinkedIn and X pages of Gershon's campaign and internal companies in this browser and sends the posts it sees to socialtracking.gershon.ai as evidence that the agreed work was done. Never publishes. Does nothing until a signed-in Social Tracking tab connects it.",
   "permissions": [
     "cookies",

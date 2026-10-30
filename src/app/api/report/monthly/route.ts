@@ -31,10 +31,15 @@ async function adminOk() {
   if (!s?.user || s.user.role !== "ADMIN") return false;
   return s.user.organizationId === (await primaryOrgId());
 }
+/** v0.7.0: previews are for the whole Gershon team (middleware already admits only the primary workspace); sending stays ADMIN. */
+async function memberOk() {
+  const s = await getSession();
+  return !!s?.user && s.user.organizationId === (await primaryOrgId());
+}
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
 export async function GET(req: NextRequest) {
-  if (!secretOk(req) && !(await adminOk())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!secretOk(req) && !(await memberOk())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const url = new URL(req.url);
     const month = url.searchParams.get("month");
@@ -58,6 +63,27 @@ export async function GET(req: NextRequest) {
       const r = renderCompany(b, c.model, c.recipients.join(", ") || "(no report email on file)");
       if (format === "pdf") return new NextResponse(r.pdf.bytes() as unknown as BodyInit, { headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${r.filename}"` } });
       return new NextResponse(r.html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    }
+
+    // v0.7.0: the /reports page reads this list.
+    if (format === "index") {
+      return NextResponse.json({
+        success: true,
+        data: {
+          month: b.win.key,
+          name: `${b.win.name} ${b.win.y}`,
+          categories: b.categories.map((m) => ({
+            key: m.key, label: m.label, head: m.head, lead: m.lead,
+            companies: m.totals.companies, posts: m.totals.posts, eng: m.totals.eng,
+            pct: "pct" in m.totals ? (m.totals as { pct: number | null }).pct : null,
+            to: m.key === "CAMPAIGN" ? ["report@gershonconsulting.com", "sales@gershonconsulting.com"] : ["report@gershonconsulting.com"],
+          })),
+          companies: b.companies.map((c) => ({
+            id: c.model.id, name: c.model.name, head: c.model.head, pct: c.model.pct,
+            posts: c.month.li + c.month.x, eng: c.month.eng, to: c.recipients,
+          })),
+        },
+      });
     }
 
     const q = (extra: string) => `?${extra}${month ? `&month=${encodeURIComponent(month)}` : ""}`;

@@ -343,6 +343,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // v0.6.1: Social Tracking creates Campaign or Internal companies only.
+    if (!(PRODUCT_CLIENT_TYPES as readonly string[]).includes(parsed.data.clientType)) parsed.data.clientType = ClientType.CAMPAIGN;
+
     // Same company already in THIS workspace? That is a real duplicate.
     const existing = await prisma.client.findUnique({ where: { slug: parsed.data.slug } });
     if (existing) {
