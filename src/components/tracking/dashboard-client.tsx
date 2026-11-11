@@ -44,7 +44,7 @@ const WINDOWS: { key: W; label: string }[] = [
 
 const C_LI = "#0A66C2";
 const C_X = "#15171C";
-const C_TARGET = "#CC3333";
+const C_TARGET = "#FE1B04";
 const C_UNKNOWN = "#D4D0C7";
 const PUBLISH = "https://publish.gershon.ai";
 
@@ -102,7 +102,7 @@ function relTime(iso: string | null): string {
 const shortDate = (s: string) => toD(s).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 const monthLabel = (mk: string, long = false) =>
   toD(`${mk}-01`).toLocaleDateString("en-US", { month: long ? "long" : "short", year: long ? undefined : "2-digit", timeZone: "UTC" });
-const pctTone = (p: number) => (p >= 0.9 ? "#2E7D4F" : p >= 0.6 ? "#F59E0B" : "#CC3333");
+const pctTone = (p: number) => (p >= 0.9 ? "#2E7D4F" : p >= 0.6 ? "#F59E0B" : "#FE1B04");
 const pct = (p: number | null) => (p === null ? "n/a" : `${Math.round(p * 100)}%`);
 
 type DayState = "verified" | "missing" | "unknown" | "pending" | "off";
@@ -348,7 +348,7 @@ function TrackingDashboardView({ data }: { data: TrackingDashData }) {
     <div className="space-y-5">
       {/* v0.6.0 — hero: the one answer that matters, with the window picker and the one-pager */}
       <section className="relative overflow-hidden rounded-2xl text-white shadow-[0_10px_40px_rgba(168,40,31,0.25)]"
-        style={{ background: "linear-gradient(120deg, #CC3333 0%, #a8281f 60%, #6f1a14 100%)" }}>
+        style={{ background: "linear-gradient(120deg, #FE1B04 0%, #d11200 60%, #7a0c00 100%)" }}>
         <svg className="absolute right-0 top-0 h-full opacity-[0.10] pointer-events-none" viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" aria-hidden>
           {Array.from({ length: 9 }, (_, i) => <circle key={i} cx={400} cy={100} r={30 + i * 34} fill="none" stroke="#fff" strokeWidth="1.5" />)}
         </svg>
@@ -373,13 +373,13 @@ function TrackingDashboardView({ data }: { data: TrackingDashData }) {
                 {WINDOWS.map((o) => (
                   <button key={o.key} type="button" onClick={() => setW(o.key)}
                     className={"px-3 h-8 whitespace-nowrap text-[13px] font-semibold rounded-md transition-colors " +
-                      (w === o.key ? "bg-white text-[#a8281f]" : "text-white/85 hover:text-white hover:bg-white/10")}>
+                      (w === o.key ? "bg-white text-[#d11200]" : "text-white/85 hover:text-white hover:bg-white/10")}>
                     {o.label}
                   </button>
                 ))}
               </div>
               <Link href={`/onepager?month=${addMonths(mk, -1)}`}
-                className="inline-flex items-center justify-center gap-2 h-10 rounded-lg bg-white text-[#a8281f] text-sm font-bold px-4 hover:bg-[#fdf2f2]">
+                className="inline-flex items-center justify-center gap-2 h-10 rounded-lg bg-white text-[#d11200] text-sm font-bold px-4 hover:bg-[#fff5f5]">
                 <Newspaper size={16} /> {monthLabel(addMonths(mk, -1), true)} client one-pagers
               </Link>
             </div>
@@ -452,7 +452,7 @@ function TrackingDashboardView({ data }: { data: TrackingDashData }) {
           n={4}
           q="Getting more efficient?"
           value={eff.eppChange === null ? "—" : `${eff.eppChange >= 0 ? "+" : ""}${Math.round(eff.eppChange * 100)}%`}
-          tone={eff.eppChange === null ? undefined : eff.eppChange >= 0 ? "#2E7D4F" : "#CC3333"}
+          tone={eff.eppChange === null ? undefined : eff.eppChange >= 0 ? "#2E7D4F" : "#FE1B04"}
           unit="engagement / post since start"
           line={eff.measured
             ? <>Last 3 months vs first 3 months of each campaign ({eff.measured} of {companies.length} companies)</>
@@ -549,7 +549,7 @@ function TrackingDashboardView({ data }: { data: TrackingDashData }) {
               every={3}
             />
             <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-gray-500">
-              <Legend c="#2E7D4F" t="verified" /><Legend c="#F6BBB3" t="missing" /><Legend c={C_UNKNOWN} t="unknown" /><Legend c="#F3F1EC" t="pending / before start" />
+              <Legend c="#2E7D4F" t="verified" /><Legend c="#ffb9b0" t="missing" /><Legend c={C_UNKNOWN} t="unknown" /><Legend c="#F3F1EC" t="pending / before start" />
             </div>
           </div>
         </div>
@@ -857,7 +857,7 @@ function Legend({ c, t }: { c: string; t: string }) {
 
 /** 13 weeks × 5 weekdays, one square per day, coloured by its verification state. */
 function WeekDots({ co, weeks, today }: { co: BookCompany; weeks: string[]; today: string }) {
-  const fill: Record<DayState, string> = { verified: "#2E7D4F", missing: "#F6BBB3", unknown: C_UNKNOWN, pending: "#F3F1EC", off: "#F3F1EC" };
+  const fill: Record<DayState, string> = { verified: "#2E7D4F", missing: "#ffb9b0", unknown: C_UNKNOWN, pending: "#F3F1EC", off: "#F3F1EC" };
   const title: string[] = [];
   return (
     <svg width={13 * 8} height={5 * 6} aria-hidden className="block">
@@ -995,8 +995,8 @@ function Spark({ values }: { values: number[] }) {
   const d = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("");
   return (
     <svg width={W} height={H} className="block shrink-0" aria-hidden>
-      <path d={`${d}L${W},${H}L0,${H}Z`} fill="#CC3333" opacity={0.08} />
-      <path d={d} fill="none" stroke="#CC3333" strokeWidth={1.75} strokeLinejoin="round" />
+      <path d={`${d}L${W},${H}L0,${H}Z`} fill="#FE1B04" opacity={0.08} />
+      <path d={d} fill="none" stroke="#FE1B04" strokeWidth={1.75} strokeLinejoin="round" />
     </svg>
   );
 }
@@ -1080,7 +1080,7 @@ function PostingCalendar({ companies, today }: { companies: BookCompany[]; today
         <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
           <Legend c={C_LI} t="LinkedIn" /><Legend c={C_X} t="X" />
           <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: `linear-gradient(135deg, ${C_LI} 50%, ${C_X} 50%)` }} />Both</span>
-          <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#fdf2f2] border border-[#CC3333]" />No post</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#fff5f5] border border-[#FE1B04]" />No post</span>
           <Legend c={C_UNKNOWN} t="Not verifiable yet" /><Legend c="#F3F4F6" t="Not due" />
         </div>
       </div>
@@ -1106,7 +1106,7 @@ function PostingCalendar({ companies, today }: { companies: BookCompany[]; today
                   const f = co.posted[d] ?? 0;
                   let bg = "#F3F4F6", border = "transparent";
                   if (st === "verified") bg = f === 3 ? `linear-gradient(135deg, ${C_LI} 50%, ${C_X} 50%)` : f === 2 ? C_X : C_LI;
-                  else if (st === "missing") { bg = "#fdf2f2"; border = "#CC3333"; }
+                  else if (st === "missing") { bg = "#fff5f5"; border = "#FE1B04"; }
                   else if (st === "unknown") bg = C_UNKNOWN;
                   const tip = `${shortDate(d)} · ${st === "verified" ? `posted on ${f === 3 ? "LinkedIn and X" : f === 2 ? "X" : "LinkedIn"}` : st === "missing" ? "no post" : st === "unknown" ? "not verifiable yet" : "not due"}`;
                   return <span key={d} title={tip} className="block h-[18px] rounded-[4px]" style={{ background: bg, border: `1px solid ${border}` }} />;

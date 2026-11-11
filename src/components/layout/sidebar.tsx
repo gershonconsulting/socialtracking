@@ -97,8 +97,8 @@ export function Sidebar() {
                     className={cn(
                       "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-[#CC3333] text-white shadow-sm"
-                        : "text-gray-600 hover:bg-[#fdf2f2] hover:text-[#a8281f]"
+                        ? "bg-[#FE1B04] text-white shadow-sm"
+                        : "text-gray-600 hover:bg-[#fff5f5] hover:text-[#d11200]"
                     )}
                   >
                     <item.icon className="flex-shrink-0" size={17} strokeWidth={1.8} />
@@ -116,7 +116,7 @@ export function Sidebar() {
                             href={sub.href}
                             className={cn(
                               "block px-2.5 py-1.5 rounded-md text-[13px] font-medium transition-colors",
-                              subActive ? "text-[#a8281f] bg-[#fdf2f2]" : "text-gray-500 hover:text-[#1d1d1f]"
+                              subActive ? "text-[#d11200] bg-[#fff5f5]" : "text-gray-500 hover:text-[#1d1d1f]"
                             )}
                           >
                             {sub.label}
@@ -140,7 +140,7 @@ export function Sidebar() {
       <div className="px-3 py-3 border-t border-[#e5e7eb]">
         
         <div className="flex items-center gap-2.5 px-2 py-1.5">
-          <div className="w-8 h-8 rounded-full bg-[#fdf2f2] text-[#a8281f] text-xs font-semibold flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-[#fff5f5] text-[#d11200] text-xs font-semibold flex items-center justify-center flex-shrink-0">
             {initials(session?.user?.name, session?.user?.email)}
           </div>
           <div className="flex-1 min-w-0 leading-tight">

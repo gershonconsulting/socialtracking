@@ -12,7 +12,7 @@ import { ArrowLeft, CheckCircle2, ExternalLink, FileDown, Printer } from "lucide
 import type { OnePageView } from "@/lib/reports/monthly/onepage";
 import type { ReportPost } from "@/lib/reports/monthly/model";
 
-const RED = "#CC3333", RED_DARK = "#a8281f", TINT = "#fdf2f2", INK = "#1d1d1f", LI = "#0A66C2", X = "#15171C", GOOD = "#16a34a";
+const RED = "#FE1B04", RED_DARK = "#d11200", TINT = "#fff5f5", INK = "#1d1d1f", LI = "#0A66C2", X = "#15171C", GOOD = "#16a34a";
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 
 export interface ClientPick { id: string; name: string; logoUrl: string | null; pct: number | null; posts: number; sub: string }
@@ -66,7 +66,7 @@ export function ClientOnePager({ view, month, months, companyId, companies, logo
 
       <div className="onepager-sheet max-w-[1000px] mx-auto my-6 bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-[#e5e7eb] overflow-hidden">
         {/* Header */}
-        <header className="relative px-9 pt-8 pb-7 text-white" style={{ background: `linear-gradient(120deg, ${RED} 0%, ${RED_DARK} 62%, #6f1a14 100%)` }}>
+        <header className="relative px-9 pt-8 pb-7 text-white" style={{ background: `linear-gradient(120deg, ${RED} 0%, ${RED_DARK} 62%, #7a0c00 100%)` }}>
           <svg className="absolute right-0 top-0 h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" aria-hidden>
             {Array.from({ length: 9 }, (_, i) => <circle key={i} cx={400} cy={100} r={30 + i * 34} fill="none" stroke="#fff" strokeWidth="1.5" />)}
           </svg>
@@ -166,7 +166,7 @@ export function ClientOnePager({ view, month, months, companyId, companies, logo
             <H2>{view.extra.title}</H2>
             <div className="mt-3 grid grid-cols-3 gap-3">
               {view.extra.items.map(([a, b], i) => (
-                <div key={i} className="rounded-xl border border-[#e5e7eb] p-4" style={i === 0 ? { background: TINT, borderColor: "#f3c9c5" } : undefined}>
+                <div key={i} className="rounded-xl border border-[#e5e7eb] p-4" style={i === 0 ? { background: TINT, borderColor: "#ffc9c2" } : undefined}>
                   <div className="text-[13px] font-semibold leading-snug">{a}</div>
                   <div className="text-[12px] text-gray-500 mt-1">{b}</div>
                 </div>
@@ -202,7 +202,7 @@ export function ClientPicker({ month, months, clients }: { month: string; months
         </div>
       </div>
       <div className="max-w-[1100px] mx-auto px-6 py-8">
-        <div className="rounded-2xl text-white px-8 py-7 relative overflow-hidden" style={{ background: `linear-gradient(120deg, ${RED} 0%, ${RED_DARK} 62%, #6f1a14 100%)` }}>
+        <div className="rounded-2xl text-white px-8 py-7 relative overflow-hidden" style={{ background: `linear-gradient(120deg, ${RED} 0%, ${RED_DARK} 62%, #7a0c00 100%)` }}>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75">Monthly one-pager · one per campaign client</div>
           <h1 className="mt-1 text-[34px] font-bold leading-tight">{label}</h1>
           <p className="mt-1.5 text-sm text-white/85">Pick a client to open the one-pager it receives as its monthly report — print it, download the PDF, or check it before it goes out.</p>
@@ -260,7 +260,7 @@ function Net({ net }: { net: string }) {
 }
 function Top({ p, rank }: { p: ReportPost; rank: number }) {
   return (
-    <div className="rounded-xl border p-3.5 flex gap-3" style={rank === 1 ? { background: TINT, borderColor: "#f3c9c5" } : { borderColor: "#e5e7eb" }}>
+    <div className="rounded-xl border p-3.5 flex gap-3" style={rank === 1 ? { background: TINT, borderColor: "#ffc9c2" } : { borderColor: "#e5e7eb" }}>
       <span className="h-6 w-6 rounded-full text-[11px] font-bold text-white flex items-center justify-center shrink-0" style={{ background: rank === 1 ? RED : INK }}>{rank}</span>
       <div className="min-w-0 flex-1">
         <p className="text-[12.5px] leading-snug text-gray-800 line-clamp-3">{p.text || "Image or video post"}</p>

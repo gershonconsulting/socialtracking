@@ -11,6 +11,7 @@ SPEC: docs/THREE-PLATFORM-SPLIT.md (sections 2, 14-17 for this product).
 SIBLINGS: social.gershon.ai (repo social), Publish (publish.gershon.ai).
 
 STATUS
+[DONE] ✅ 2026-11-11 wave 4 — v0.8.2 brand red switch (PR nightly/2026-11-11-socialtracking-brand-red, ❌ not merged/deployed): #CC3333→#FE1B04, #a8281f→#d11200, #fdf2f2→#fff5f5 across UI, tailwind red/brand scale, email/PDF renderers (daily, ops, monthly, alerts, campaigns). Old-hue tints retuned. 0 old codes left.
 [DONE] ✅ v0.8.0 BUILT 2026-10-29 (main, ❌ not deployed — waiting for Olivier's "deploy") — Olivier: "one pager per
        company we do campaign for so we can send it for the monthly report. No need for internal, just the clients."
        /onepager = picker of ACTIVE CAMPAIGN clients (objective % per client); /onepager?company=<id>&month= = that

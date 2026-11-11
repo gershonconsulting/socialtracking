@@ -16,7 +16,7 @@ import type { CategoryModel, CompanyModel, CompanyMonth, MonthWindow, ReportPost
 import { clipText } from "./model";
 import { siteUrl } from "@/lib/site";
 
-export const RED = "#CC3333", RED_DARK = "#a8281f", TINT = "#fdf2f2", INK = "#1d1d1f", MUT = "#6b7280",
+export const RED = "#FE1B04", RED_DARK = "#d11200", TINT = "#fff5f5", INK = "#1d1d1f", MUT = "#6b7280",
   RULE = "#e5e7eb", GOOD = "#16a34a", LI = "#0A66C2", X = "#15171C", EMPTY = "#eef0f3", OFF = "#f7f7f8";
 
 export interface CalRow {
@@ -132,7 +132,7 @@ export function onePageHtml(v: OnePageView, subject: string, note?: string): str
     <td style="padding:0 0 9px;font-size:13px;line-height:1.4;color:${INK};"><b>${esc(a)}</b><br><span style="color:${MUT};font-size:12px;">${esc(b)}</span></td></tr>`).join("");
 
   const top = v.top.map((p, i) => `<tr><td style="padding:0 0 8px;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${i === 0 ? "#f3c9c5" : RULE};background:${i === 0 ? TINT : "#fff"};border-radius:10px;"><tr>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${i === 0 ? "#ffc9c2" : RULE};background:${i === 0 ? TINT : "#fff"};border-radius:10px;"><tr>
     <td valign="top" style="padding:10px 0 10px 12px;width:26px;"><div style="width:22px;height:22px;border-radius:11px;background:${i === 0 ? RED : INK};color:#fff;font-size:11px;font-weight:800;line-height:22px;text-align:center;">${i + 1}</div></td>
     <td style="padding:10px 12px;"><div style="font-size:12px;color:${INK};line-height:1.4;">${p.url ? `<a href="${esc(p.url)}" style="color:${INK};text-decoration:none;">${esc(clipText(p.text, 120) || "Image or video post")}</a>` : esc(clipText(p.text, 120) || "Image or video post")}</div>
       <div style="font-size:11px;color:${MUT};margin-top:4px;"><b style="color:${INK};">${fmt(p.eng)}</b> engagements · ${esc(p.company)} · ${esc(p.net)} · ${esc(p.date)}</div></td></tr></table></td></tr>`).join("");
@@ -150,15 +150,15 @@ export function onePageHtml(v: OnePageView, subject: string, note?: string): str
 <div style="display:none;max-height:0;overflow:hidden;">${esc(v.lead)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f2ee;"><tr><td align="center" style="padding:24px 12px 36px;">
 <table role="presentation" width="680" cellpadding="0" cellspacing="0" style="width:680px;max-width:100%;background:#fff;border:1px solid ${RULE};border-radius:16px;overflow:hidden;">
- <tr><td style="background:${RED};background-image:linear-gradient(120deg,${RED} 0%,${RED_DARK} 65%,#6f1a14 100%);padding:26px 28px;color:#fff;">
+ <tr><td style="background:${RED};background-image:linear-gradient(120deg,${RED} 0%,${RED_DARK} 65%,#7a0c00 100%);padding:26px 28px;color:#fff;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
    <td valign="middle">
-    <div style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#f6d3cf;">${esc(v.eyebrow)} · ${esc(v.who)}</div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#ffd5d0;">${esc(v.eyebrow)} · ${esc(v.who)}</div>
     <div style="font-size:32px;font-weight:800;line-height:1.1;margin-top:6px;color:#fff;">${esc(v.title)}</div>
     <div style="font-size:15px;font-weight:700;margin-top:10px;color:#fff;">${esc(v.headline)}</div>
     <div style="font-size:13px;margin-top:4px;color:#f9e3e1;line-height:1.45;">${esc(v.lead)}</div></td>
    ${v.big ? `<td valign="middle" align="right" style="width:130px;padding-left:16px;"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td align="center" valign="middle" style="width:116px;height:116px;border:8px solid #ffffff;border-radius:66px;color:#fff;">
-     <div style="font-size:30px;font-weight:800;line-height:1;">${esc(v.big.value)}</div><div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#f6d3cf;margin-top:4px;">${esc(v.big.label)}</div></td></tr></table></td>` : ""}
+     <div style="font-size:30px;font-weight:800;line-height:1;">${esc(v.big.value)}</div><div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#ffd5d0;margin-top:4px;">${esc(v.big.label)}</div></td></tr></table></td>` : ""}
   </tr></table></td></tr>
  <tr><td style="border-bottom:1px solid ${RULE};">${tiles}</td></tr>
  <tr><td style="padding:22px 28px 6px;">
@@ -185,8 +185,8 @@ export function onePageHtml(v: OnePageView, subject: string, note?: string): str
 // ── One-page PDF (US Letter portrait) ────────────────────────────────────────
 const hex = (h: string): RGB => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255) as RGB;
 const P = {
-  RED: hex(RED), DARK: hex(RED_DARK), DEEP: hex("#6f1a14"), INK: hex(INK), MUT: hex(MUT), RULE: hex(RULE), TINT: hex(TINT),
-  GOOD: hex(GOOD), LI: hex(LI), X: hex(X), EMPTY: hex(EMPTY), OFF: hex(OFF), WHITE: [1, 1, 1] as RGB, PINK: hex("#f6d3cf"), BG: hex("#fafafa"),
+  RED: hex(RED), DARK: hex(RED_DARK), DEEP: hex("#7a0c00"), INK: hex(INK), MUT: hex(MUT), RULE: hex(RULE), TINT: hex(TINT),
+  GOOD: hex(GOOD), LI: hex(LI), X: hex(X), EMPTY: hex(EMPTY), OFF: hex(OFF), WHITE: [1, 1, 1] as RGB, PINK: hex("#ffd5d0"), BG: hex("#fafafa"),
 };
 const PW = 612, PH = 792, M = 36, CW = PW - 2 * M;
 

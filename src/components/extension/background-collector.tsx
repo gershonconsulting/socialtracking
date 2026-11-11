@@ -93,7 +93,7 @@ export function JobIcon({ status }: { status: CollectJob["status"] }) {
   if (status === "queued") return <Clock size={15} className="text-gray-500" />;
   if (status === "running") return <Loader2 size={15} className="animate-spin text-gray-600" />;
   if (status === "done") return <CheckCircle2 size={15} className="text-green-600" />;
-  if (status === "failed") return <XCircle size={15} className="text-[#CC3333]" />;
+  if (status === "failed") return <XCircle size={15} className="text-[#FE1B04]" />;
   return <XCircle size={15} className="text-gray-400" />;
 }
 
@@ -188,7 +188,7 @@ export function BackgroundCollectorCard({ latest }: { latest: string }) {
           className="inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white text-sm font-semibold px-4 py-2 disabled:opacity-40">
           {f.active ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />} Verify every company now
         </button>
-        <span className={`text-xs font-semibold ${listening ? "text-green-700" : "text-[#CC3333]"}`}>
+        <span className={`text-xs font-semibold ${listening ? "text-green-700" : "text-[#FE1B04]"}`}>
           {view ? (listening ? `${listening} Chrome${listening > 1 ? "s" : ""} listening` : "No Chrome listening right now") : ""}
           {view && view.agents.some((a) => a.paused) ? <span className="text-gray-500 font-medium"> · {view.agents.filter((a) => a.paused).length} switched OFF</span> : null}
         </span>
@@ -201,7 +201,7 @@ export function BackgroundCollectorCard({ latest }: { latest: string }) {
           </p>
         );
       })()}
-      {f.error && <p className="mt-2 text-xs text-[#CC3333]">{f.error}</p>}
+      {f.error && <p className="mt-2 text-xs text-[#FE1B04]">{f.error}</p>}
       {f.job && (
         <div className="mt-3 flex items-start gap-2 text-sm text-gray-700">
           <JobIcon status={f.job.status} /> <span>{jobLine(f.job, f.listening)}</span>
@@ -209,7 +209,7 @@ export function BackgroundCollectorCard({ latest }: { latest: string }) {
       )}
 
       <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-gray-500">Chromes that have checked in</h3>
-      {loadError && <p className="text-xs text-[#CC3333] mt-1">{loadError}</p>}
+      {loadError && <p className="text-xs text-[#FE1B04] mt-1">{loadError}</p>}
       {view && view.agents.length === 0 && (
         <p className="text-sm text-gray-500 mt-1">None yet. A Chrome appears here within a minute of installing the Social Tracking extension and opening socialtracking.gershon.ai once while signed in.</p>
       )}
@@ -222,10 +222,10 @@ export function BackgroundCollectorCard({ latest }: { latest: string }) {
                 <span className={`h-2 w-2 rounded-full ${a.paused ? "bg-gray-400" : a.live ? "bg-green-500" : "bg-gray-300"}`} />
                 <span className="flex-1 min-w-0 truncate text-gray-900">
                   {a.label} <span className="text-gray-400 text-xs">· {a.id.slice(-6)}</span>
-                  {a.id === mine && <span className="ml-2 gx-pill bg-[#fdf2f2] text-[#a8281f]">this computer</span>}
+                  {a.id === mine && <span className="ml-2 gx-pill bg-[#fff5f5] text-[#d11200]">this computer</span>}
                   {a.paused && <span className="ml-2 gx-pill bg-gray-100 text-gray-600">OFF — not verifying</span>}
                 </span>
-                <span className={`text-xs tabular-nums ${old ? "text-[#CC3333] font-semibold" : "text-gray-500"}`}>
+                <span className={`text-xs tabular-nums ${old ? "text-[#FE1B04] font-semibold" : "text-gray-500"}`}>
                   {old && <AlertTriangle size={12} className="inline mr-1" />}v{a.version}{old ? ` (update to v${latest})` : ""}
                 </span>
                 <span className="text-xs text-gray-400 w-24 text-right">{ago(a.lastSeenAt)}</span>

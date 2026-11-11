@@ -39,10 +39,10 @@ export function OnOffSwitch({ on, busy, onChange, label }: { on: boolean; busy?:
       disabled={busy}
       onClick={() => onChange(!on)}
       className={"inline-flex items-center gap-2 rounded-full pl-1 pr-3 h-8 text-xs font-bold transition-colors disabled:opacity-60 " +
-        (on ? "bg-[#CC3333] text-white" : "bg-gray-200 text-gray-700")}
+        (on ? "bg-[#FE1B04] text-white" : "bg-gray-200 text-gray-700")}
     >
       <span className={"h-6 w-6 rounded-full bg-white shadow flex items-center justify-center transition-transform " + (on ? "" : "")}>
-        {busy ? <Loader2 size={13} className="animate-spin text-gray-500" /> : <Power size={13} className={on ? "text-[#CC3333]" : "text-gray-400"} />}
+        {busy ? <Loader2 size={13} className="animate-spin text-gray-500" /> : <Power size={13} className={on ? "text-[#FE1B04]" : "text-gray-400"} />}
       </span>
       {on ? "ON" : "OFF"}
     </button>
@@ -79,7 +79,7 @@ export function ThisComputerCard({ onChanged }: { onChanged?: () => void }) {
   return (
     <section id="this-computer" className="bg-white rounded-xl border border-gray-200 p-5 scroll-mt-6">
       <div className="flex flex-wrap items-start gap-4">
-        <span className={"h-11 w-11 rounded-xl flex items-center justify-center shrink-0 " + (on ? "bg-[#fdf2f2] text-[#CC3333]" : "bg-gray-100 text-gray-500")}>
+        <span className={"h-11 w-11 rounded-xl flex items-center justify-center shrink-0 " + (on ? "bg-[#fff5f5] text-[#FE1B04]" : "bg-gray-100 text-gray-500")}>
           <Laptop size={22} />
         </span>
         <div className="flex-1 min-w-[240px]">
@@ -99,7 +99,7 @@ export function ThisComputerCard({ onChanged }: { onChanged?: () => void }) {
           {installed && !ext.agentId && (
             <p className="text-xs text-amber-700 mt-1">This browser runs v{ext.version}, which cannot be switched from here yet — update it to v0.2.0, or use the switch next to it in the list below.</p>
           )}
-          {error && <p className="text-xs text-[#CC3333] mt-1">{error}</p>}
+          {error && <p className="text-xs text-[#FE1B04] mt-1">{error}</p>}
         </div>
         <div className="flex items-center gap-3">
           {ext.state !== "checking" && <OnOffSwitch on={on} busy={busy} onChange={change} label="Post Verifier on this computer" />}
