@@ -20,7 +20,7 @@ const config: Config = {
         // without being edited.
         // v0.6.0 — unified Gershon.ai look (Linalysis master, Gershon.ai red):
         // neutral grays with #e5e7eb borders and #1d1d1f ink, and "red" is the
-        // Gershon.ai red #CC3333 / dark #a8281f / tint #fdf2f2. Every page picks
+        // Gershon.ai red #FE1B04 / dark #d11200 / tint #fff5f5. Every page picks
         // this up without being edited.
         gray: {
           50: "#F9FAFB",
@@ -36,20 +36,20 @@ const config: Config = {
           950: "#0E0F12",
         },
         red: {
-          50: "#FDF2F2",
-          100: "#FBE1DF",
-          200: "#F3C9C5",
-          300: "#EA9F98",
-          400: "#DD6A60",
-          500: "#D44A3F",
-          600: "#CC3333",
-          700: "#A8281F",
-          800: "#86201A",
-          900: "#6F1A14",
+          50: "#fff5f5",
+          100: "#ffe1de",
+          200: "#ffc9c2",
+          300: "#ff9d90",
+          400: "#ff6a58",
+          500: "#f03a24",
+          600: "#FE1B04",
+          700: "#d11200",
+          800: "#a30e00",
+          900: "#7a0c00",
         },
         brand: {
-          DEFAULT: "#CC3333",
-          hover: "#A8281F",
+          DEFAULT: "#FE1B04",
+          hover: "#d11200",
           charcoal: "#111317",
           ink: "#1D1D1F",
           paper: "#F7F7F8",

@@ -28,7 +28,7 @@ function closedMonths(n = 12): Array<{ key: string; label: string }> {
   });
 }
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
-const tone = (p: number | null) => (p === null ? "#6b7280" : p >= 100 ? "#16a34a" : p >= 50 ? "#ea580c" : "#CC3333");
+const tone = (p: number | null) => (p === null ? "#6b7280" : p >= 100 ? "#16a34a" : p >= 50 ? "#ea580c" : "#FE1B04");
 
 export default function ReportsPage() {
   const months = useMemo(() => closedMonths(), []);
@@ -69,7 +69,7 @@ export default function ReportsPage() {
     <div className="space-y-5">
       {/* Header band */}
       <section className="relative overflow-hidden rounded-2xl text-white shadow-[0_10px_40px_rgba(168,40,31,0.25)]"
-        style={{ background: "linear-gradient(120deg, #CC3333 0%, #a8281f 60%, #6f1a14 100%)" }}>
+        style={{ background: "linear-gradient(120deg, #FE1B04 0%, #d11200 60%, #7a0c00 100%)" }}>
         <svg className="absolute right-0 top-0 h-full opacity-[0.10] pointer-events-none" viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" aria-hidden>
           {Array.from({ length: 9 }, (_, i) => <circle key={i} cx={400} cy={100} r={30 + i * 34} fill="none" stroke="#fff" strokeWidth="1.5" />)}
         </svg>
@@ -84,7 +84,7 @@ export default function ReportsPage() {
           </div>
           <div className="flex flex-col gap-2.5">
             <select aria-label="Month" value={month} onChange={(e) => setMonth(e.target.value)}
-              className="h-10 rounded-lg bg-white text-[#a8281f] font-semibold text-sm px-3 border-0">
+              className="h-10 rounded-lg bg-white text-[#d11200] font-semibold text-sm px-3 border-0">
               {months.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
             </select>
             <Link href={`/onepager?month=${month}`}
@@ -159,7 +159,7 @@ function ReportRow({ active, onClick, title, head, big, bigColor, sub, to }: {
   return (
     <button onClick={onClick}
       className={"w-full text-left px-4 py-3 border-t border-gray-100 first:border-t-0 flex items-start gap-3 transition-colors " +
-        (active ? "bg-[#fdf2f2] shadow-[inset_3px_0_0_#CC3333]" : "hover:bg-gray-50")}>
+        (active ? "bg-[#fff5f5] shadow-[inset_3px_0_0_#FE1B04]" : "hover:bg-gray-50")}>
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-gray-900 truncate">{title}</div>
         <div className="text-xs text-gray-600 mt-0.5 line-clamp-2">{head}</div>

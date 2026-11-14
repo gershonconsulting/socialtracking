@@ -58,7 +58,7 @@ export function ExtensionInstallBanner({ latest }: { latest: string }) {
   }
 
   return (
-    <div className="bg-[#CC3333] text-white rounded-xl px-4 py-3 mb-5 flex items-center gap-3">
+    <div className="bg-[#FE1B04] text-white rounded-xl px-4 py-3 mb-5 flex items-center gap-3">
       <AlertOctagon size={18} className="shrink-0" />
       <div className="flex-1 text-sm">
         <strong>Your Social Tracking extension is out of date (v{state.version}, latest v{latest}).</strong>{" "}
@@ -66,7 +66,7 @@ export function ExtensionInstallBanner({ latest }: { latest: string }) {
         <Link href="/extension" className="underline font-semibold">How to update</Link>
       </div>
       <a href={EXTENSION_ZIP_URL} download={EXTENSION_ZIP_NAME}
-        className="shrink-0 inline-flex items-center gap-2 bg-white text-[#CC3333] text-sm font-semibold rounded-lg px-3 py-1.5">
+        className="shrink-0 inline-flex items-center gap-2 bg-white text-[#FE1B04] text-sm font-semibold rounded-lg px-3 py-1.5">
         <Download size={15} /> Download v{latest}
       </a>
     </div>

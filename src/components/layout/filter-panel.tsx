@@ -33,13 +33,13 @@ function Check({ on, label, count, onClick }: { on: boolean; label: string; coun
       aria-checked={on}
       className={
         "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[13px] text-left transition-colors " +
-        (on ? "bg-[#fdf2f2] text-[#a8281f] font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-[#1d1d1f]")
+        (on ? "bg-[#fff5f5] text-[#d11200] font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-[#1d1d1f]")
       }
     >
       <span
         className={
           "w-3.5 h-3.5 rounded-[4px] border flex-shrink-0 flex items-center justify-center " +
-          (on ? "bg-[#CC3333] border-[#CC3333]" : "border-gray-300 bg-white")
+          (on ? "bg-[#FE1B04] border-[#FE1B04]" : "border-gray-300 bg-white")
         }
       >
         {on && (
@@ -106,7 +106,7 @@ export function FilterPanel() {
           <button
             onClick={reset}
             title="Back to the default view: Campaign, this month, all networks"
-            className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-[#CC3333] hover:underline"
+            className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-[#FE1B04] hover:underline"
           >
             <RotateCcw size={10} /> Reset
           </button>

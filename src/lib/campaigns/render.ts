@@ -16,7 +16,7 @@
 import type { CampaignMonth, CampaignMonthlyReport } from "./monthly";
 import { APP_URL } from "./monthly";
 
-const RED = "#CC3333";
+const RED = "#FE1B04";
 const INK = "#111827";
 const MUTED = "#6b7280";
 const LINE = "#e5e7eb";
@@ -96,7 +96,7 @@ function footer(r: CampaignMonthlyReport, shareUrl: string): string {
 
 function shareBanner(url: string): string {
   return `
-  <div style="padding:14px 24px;background:#fff8f7;border-bottom:1px solid #fee2dd;text-align:center;">
+  <div style="padding:14px 24px;background:#fff5f5;border-bottom:1px solid #ffe0dc;text-align:center;">
     <a href="${url}" style="display:inline-block;padding:10px 20px;background:${RED};color:#ffffff;font-weight:700;font-size:13px;text-decoration:none;border-radius:8px;">Open the live report →</a>
     <div style="font-size:11px;color:${MUTED};margin-top:8px;word-break:break-all;">${url}</div>
   </div>`;
@@ -137,7 +137,7 @@ export function renderSummaryBody(r: CampaignMonthlyReport): string {
 
   return `
   ${header(`Campaign performance — ${r.monthLabel}`, `${r.totals.companies} campaign ${r.totals.companies === 1 ? "company" : "companies"} · objective: one post per day`)}
-  <table style="width:100%;border-collapse:collapse;background:#fff8f7;border-bottom:1px solid #fee2dd;">
+  <table style="width:100%;border-collapse:collapse;background:#fff5f5;border-bottom:1px solid #ffe0dc;">
     <tr>
       ${kpi(pctText(r.totals.attainmentPct), "Objective met", true)}
       ${kpi(String(r.totals.postsPublished), "Posts published")}
@@ -227,7 +227,7 @@ export function renderCompanyBody(r: CampaignMonthlyReport, c: CampaignMonth): s
 
   return `
   ${header(esc(c.name), `${r.monthLabel} · objective: one post per day`)}
-  <table style="width:100%;border-collapse:collapse;background:#fff8f7;border-bottom:1px solid #fee2dd;">
+  <table style="width:100%;border-collapse:collapse;background:#fff5f5;border-bottom:1px solid #ffe0dc;">
     <tr>
       ${kpi(pctText(c.attainmentPct), "Objective met", true)}
       ${kpi(String(c.postsPublished), "Posts published")}
