@@ -16,7 +16,7 @@
  *   - the red out-of-date banner on every dashboard page
  *   - the /extension page
  */
-export const EXTENSION_LATEST = "0.2.0";
+export const EXTENSION_LATEST = "0.3.0";
 
 export const EXTENSION_NAME = "Social Tracking by Gershon.AI \u2014 Post Verifier";
 

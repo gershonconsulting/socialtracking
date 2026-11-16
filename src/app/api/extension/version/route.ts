@@ -11,6 +11,7 @@ import { EXTENSION_LATEST, EXTENSION_ZIP_URL, EXTENSION_NAME, EXTENSION_FOLDER_P
  * EXTENSION_LATEST (src/lib/extension-version.ts) is the single source of truth.
  */
 const RELEASE_NOTES: Record<string, string> = {
+  "0.3.0": "LinkedIn showcase pages (linkedin.com/showcase/…) are now collected like company pages; before, their posts were skipped.",
   "0.1.0":
     "First release. Visits the LinkedIn and X pages of our campaign and internal companies in this Chrome, in its own minimized window, and sends the posts it sees to Social Tracking as independent evidence that the agreed work was done. Collects once a day, catches up after a missed day, and runs any verification asked for on socialtracking.gershon.ai/extension within a minute. Never publishes.",
 };
