@@ -571,7 +571,9 @@ async function runFullSync(opts) {
     for (let i = 0; i < liClients.length; i++) {
       const c = liClients[i];
       onProgress("LinkedIn: " + (c.name || c.linkedin.vanity) + " (" + (i + 1) + "/" + liClients.length + ")…", "info");
-      const url = "https://www.linkedin.com/company/" + encodeURIComponent(c.linkedin.vanity) + "/posts/?feedView=all";
+      // 0.3.0: showcase pages live at linkedin.com/showcase/<vanity>; opening them as /company/ collected nothing.
+      const liPath = c.linkedin.kind === "showcase" ? "showcase" : "company";
+      const url = "https://www.linkedin.com/" + liPath + "/" + encodeURIComponent(c.linkedin.vanity) + "/posts/?feedView=all";
       const r = await navigateAndScrape(captureResults.LINKEDIN.tabId, url, linkedinDomScraper, runLog, "LINKEDIN:" + c.linkedin.vanity, passes);
       liResults.push({
         clientId: c.id,
