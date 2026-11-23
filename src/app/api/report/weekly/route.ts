@@ -11,7 +11,7 @@ import { renderWeekly, runWeeklyReport } from "@/lib/reports/weekly";
  * POST /api/report/weekly[?week=&force=1&dry=1&to=a@b.com]        — build AND send; idempotent per week
  *      (`to` sends a one-off test copy and does not mark the week as sent)
  * Auth: Bearer CRON_SECRET / DIGEST_SECRET / REPORT_CRON_KEY, or an ADMIN of the primary workspace.
- * Schedule: Mondays 12:30 UTC (08:30 New York) — see cron/ in this repo.
+ * Schedule: Mondays 12:30 UTC (08:30 New York) — cron "30 12 * * MON" (v0.9.0: "* * 1" was Sunday on Cloudflare).
  */
 function secretOk(req: NextRequest) {
   const auth = req.headers.get("authorization") || "";
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const r = await renderWeekly(url.searchParams.get("week"));
     const format = url.searchParams.get("format") || "html";
-    if (format === "json") return NextResponse.json({ success: true, data: { subject: r.subject, week: r.win, pct: r.pct, companies: r.data.companies, perDay: r.data.perDay } });
+    if (format === "json") return NextResponse.json({ success: true, data: { subject: r.subject, week: r.win, pct: r.pct, weekGrade: r.weekGrade, competitionGrade: r.competitionGrade, companies: r.data.companies, arenas: r.data.arenas, perDay: r.data.perDay } });
     if (format === "pdf") return new NextResponse(r.pdf.bytes() as unknown as BodyInit, { headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${r.filename}"` } });
     return new NextResponse(r.html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
   } catch (e) {

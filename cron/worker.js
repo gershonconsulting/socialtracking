@@ -1,7 +1,7 @@
 /**
  * Social Tracking report schedule — a tiny Cloudflare Worker (gershon-socialtracking-cron).
  * Cloudflare Pages has no cron, so this Worker calls the app's own report routes:
- *   • Mondays 12:30 UTC (08:30 New York) → POST /api/report/weekly  (→ social@gershonconsulting.com)
+ *   • Mondays 12:30 UTC (08:30 New York) — cron "MON" (1 = Sunday on Cloudflare) → POST /api/report/weekly  (→ social@gershonconsulting.com)
  *   • 1st of the month 12:00 UTC          → POST /api/report/monthly (before Social's 13:00 run, which
  *     then skips the CAMPAIGN / INTERNAL items Social Tracking already sent — shared sent-log)
  * Secret binding REPORT_CRON_KEY must equal the Pages project's REPORT_CRON_KEY.
@@ -18,10 +18,10 @@ async function call(path, env) {
 
 export default {
   async scheduled(event, env, ctx) {
-    if (event.cron === "30 12 * * 1") ctx.waitUntil(call("/api/report/weekly", env));
-    if (event.cron === "0 12 1 * *") ctx.waitUntil(call("/api/report/monthly", env));
+    if (String(event.cron).startsWith("30 12 ")) ctx.waitUntil(call("/api/report/weekly", env));
+    if (String(event.cron).startsWith("0 12 1 ")) ctx.waitUntil(call("/api/report/monthly", env));
   },
   async fetch() {
-    return new Response("Social Tracking report schedule: weekly Mon 12:30 UTC, monthly 1st 12:00 UTC", { status: 200 });
+    return new Response("Social Tracking report schedule: weekly Mon 12:30 UTC (MON), monthly 1st 12:00 UTC", { status: 200 });
   },
 };
