@@ -572,8 +572,11 @@ async function runFullSync(opts) {
       const c = liClients[i];
       onProgress("LinkedIn: " + (c.name || c.linkedin.vanity) + " (" + (i + 1) + "/" + liClients.length + ")…", "info");
       // 0.3.0: showcase pages live at linkedin.com/showcase/<vanity>; opening them as /company/ collected nothing.
+      // 0.4.0: related people are personal profiles (linkedin.com/in/<vanity>); their posts are on /recent-activity/all/.
       const liPath = c.linkedin.kind === "showcase" ? "showcase" : "company";
-      const url = "https://www.linkedin.com/" + liPath + "/" + encodeURIComponent(c.linkedin.vanity) + "/posts/?feedView=all";
+      const url = c.linkedin.kind === "in"
+        ? "https://www.linkedin.com/in/" + encodeURIComponent(c.linkedin.vanity) + "/recent-activity/all/"
+        : "https://www.linkedin.com/" + liPath + "/" + encodeURIComponent(c.linkedin.vanity) + "/posts/?feedView=all";
       const r = await navigateAndScrape(captureResults.LINKEDIN.tabId, url, linkedinDomScraper, runLog, "LINKEDIN:" + c.linkedin.vanity, passes);
       liResults.push({
         clientId: c.id,

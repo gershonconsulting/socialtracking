@@ -24,6 +24,7 @@ import { ClientContentTabs } from "@/components/clients/client-content-tabs";
 import { CampaignDateEditor } from "@/components/clients/campaign-date-editor";
 import { ConnectionUrlEditor } from "@/components/clients/connection-url-editor";
 import { PlatformIcon } from "@/components/ui/platform-icon";
+import { RelatedPeople } from "@/components/clients/related-people";
 import { COLLECTED_NETWORKS, NEXT_STEP, VERDICT_META, daysSinceDate, judge, lastPostLabel } from "@/lib/verdict";
 
 const PLATFORM_LABELS_MAP: Record<string, string> = {
@@ -387,6 +388,9 @@ export function ClientDetailPageClient({ clientId }: { clientId: string }) {
           </div>
         </div>
       </div>
+
+      {/* v0.9.0: the people tracked with this company (their own LinkedIn / X) */}
+      <RelatedPeople clientId={client.id} />
 
       {/* The content */}
       <ClientContentTabs clientId={client.id} clientName={client.name} clientType={client.clientType} />

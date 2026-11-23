@@ -5,6 +5,8 @@ import { dbForOrg } from "@/lib/scoped-db";
 import { resolveExtensionCaller } from "@/lib/extension-auth";
 import { PRODUCT_CLIENT_TYPES } from "@/lib/product";
 import { parseLinkedInPage, type LinkedInPageKind } from "@/lib/linkedin-page";
+import rawDb from "@/lib/db-raw";
+import { relatedPersonParents } from "@/lib/related-people/store";
 
 /**
  * GET /api/extension/clients  (extension workspace token)
@@ -83,6 +85,39 @@ export async function GET(req: NextRequest) {
       if (!linkedin && !twitter) continue;
       if (!(PRODUCT_CLIENT_TYPES as readonly string[]).includes(c.clientType)) continue;
       out.push({ id: c.id, name: c.name, slug: c.slug, category: c.clientType, linkedin, twitter });
+    }
+
+    // v0.9.0: the related people of the companies above (their own LinkedIn /in/
+    // profiles and X accounts). They are COMPANY rows, outside the product scope,
+    // so they are read raw — only those linked to an in-scope company of this workspace.
+    const parents = await relatedPersonParents(caller.orgId);
+    const inScope = new Set(clients.map((c) => c.id));
+    const personIds = [...parents.entries()].filter(([, parent]) => inScope.has(parent)).map(([pid]) => pid);
+    if (personIds.length) {
+      const people = await rawDb.client.findMany({
+        where: { id: { in: personIds }, organizationId: caller.orgId, status: "ACTIVE" },
+        orderBy: { name: "asc" },
+        include: {
+          platformConnections: {
+            where: {
+              isEnabled: true,
+              platform: { in: [Platform.LINKEDIN, Platform.TWITTER] },
+              externalAccountUrl: { not: null },
+            },
+            select: { id: true, platform: true, externalAccountUrl: true },
+          },
+        },
+      });
+      for (const p of people) {
+        const li = p.platformConnections.find((x) => x.platform === Platform.LINKEDIN);
+        const tw = p.platformConnections.find((x) => x.platform === Platform.TWITTER);
+        const page = li?.externalAccountUrl ? parseLinkedInPage(li.externalAccountUrl) : null;
+        const m = tw?.externalAccountUrl?.match(/(?:twitter\.com|x\.com)\/([A-Za-z0-9_]{1,20})/i);
+        const linkedin = li && page ? { connectionId: li.id, url: li.externalAccountUrl as string, vanity: page.vanity, kind: page.kind } : null;
+        const twitter = tw && m ? { connectionId: tw.id, url: tw.externalAccountUrl as string, handle: m[1] } : null;
+        if (!linkedin && !twitter) continue;
+        out.push({ id: p.id, name: p.name, slug: p.slug, category: "PERSON", linkedin, twitter });
+      }
     }
 
     return NextResponse.json({ success: true, data: { clients: out, totalClients: out.length } });
