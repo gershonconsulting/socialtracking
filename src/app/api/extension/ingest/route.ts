@@ -6,6 +6,7 @@ import { Platform } from "@prisma/client";
 import { recordIngestRun } from "@/lib/extension/heartbeat";
 import { recordExtSeen } from "@/lib/extension/seen";
 import { dbForOrg } from "@/lib/scoped-db";
+import { relatedPersonParents } from "@/lib/related-people/store";
 import { resolveExtensionCaller } from "@/lib/extension-auth";
 import { recordLinkedInResults } from "@/lib/collection-health";
 import { recordEvidence } from "@/lib/extension/evidence";
@@ -117,7 +118,18 @@ export async function POST(req: NextRequest) {
         where: { id: connectionId, clientId },
         select: { id: true },
       });
-      const owned = !!row;
+      let owned = !!row;
+      // v0.9.0: a related person (COMPANY row, outside the product scope) of this workspace.
+      if (!owned) {
+        const parents = await relatedPersonParents(caller.orgId);
+        if (parents.has(clientId)) {
+          const raw = await prisma.platformConnection.findFirst({
+            where: { id: connectionId, clientId, organizationId: caller.orgId },
+            select: { id: true },
+          });
+          owned = !!raw;
+        }
+      }
       ownership.set(key, owned);
       return owned;
     };
